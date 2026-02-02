@@ -1,0 +1,26 @@
+# --- Universal / OS Files ---
+.DS_Store
+Thumbs.db
+.env
+.vscode/
+
+# --- Backend & Frontend (Node.js) ---
+# The **/ ensures it finds node_modules inside any subfolder
+**/node_modules/
+**/dist/
+**/build/
+**/npm-debug.log*
+
+# --- AI Subfolder (Python/Data Science) ---
+ai/__pycache__/
+ai/.ipynb_checkpoints/
+ai/venv/
+ai/env/
+ai/*.pyc
+
+# --- Frontend (If using Flutter) ---
+# If your frontend is Flutter, add these specific lines:
+frontend/.dart_tool/
+frontend/.flutter-plugins
+frontend/.flutter-plugins-dependencies
+frontend/build/

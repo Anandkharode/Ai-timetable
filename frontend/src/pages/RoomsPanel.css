@@ -1,0 +1,188 @@
+/* ================================================================
+   Rooms Panel – Manage rooms / venues
+   Reuses patterns from FacultyPanel with room-specifics
+   ================================================================ */
+
+.rooms-panel {
+    animation: panelFadeIn 0.4s ease-out;
+}
+
+/* ---------- Room Type Badges ---------- */
+.room-type-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.25rem 0.65rem;
+    border-radius: 8px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+.room-type-badge.lecture {
+    background: rgba(45, 53, 97, 0.08);
+    color: var(--primary-color);
+}
+
+.room-type-badge.lab {
+    background: rgba(46, 139, 130, 0.1);
+    color: #2e8b82;
+}
+
+.room-type-badge.seminar {
+    background: rgba(201, 169, 110, 0.12);
+    color: #a78a4e;
+}
+
+.room-type-badge.auditorium {
+    background: rgba(156, 39, 176, 0.08);
+    color: #7b1fa2;
+}
+
+/* ---------- Capacity indicator ---------- */
+.capacity-indicator {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.capacity-bar {
+    width: 48px;
+    height: 5px;
+    border-radius: 3px;
+    background: rgba(15, 30, 61, 0.06);
+    overflow: hidden;
+}
+
+.capacity-fill {
+    height: 100%;
+    border-radius: 3px;
+    background: linear-gradient(90deg, var(--accent-color), #d4b97a);
+    transition: width 0.4s ease;
+}
+
+.capacity-text {
+    font-size: 0.8rem;
+    color: var(--text-medium);
+    font-weight: 500;
+}
+
+/* ---------- Room Form with type select ---------- */
+.room-form {
+    display: grid;
+    grid-template-columns: 1.5fr 1fr 0.8fr 1fr auto;
+    gap: 1rem;
+    align-items: flex-end;
+}
+
+.form-select {
+    padding: 0.75rem 1rem;
+    font-size: 0.9375rem;
+    font-family: 'Work Sans', sans-serif;
+    color: var(--text-dark);
+    background: var(--bg-cream);
+    border: 2px solid transparent;
+    border-radius: 12px;
+    outline: none;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    width: 100%;
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%238b8b9f' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    padding-right: 2.25rem;
+}
+
+.form-select:focus {
+    background-color: var(--white);
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 3px rgba(201, 169, 110, 0.1);
+}
+
+/* ---------- Room Table ---------- */
+.room-table-head {
+    display: grid;
+    grid-template-columns: 2fr 1fr 0.8fr 1fr 80px;
+    padding: 1rem 1.5rem;
+    background: rgba(15, 30, 61, 0.02);
+    border-bottom: 1px solid rgba(15, 30, 61, 0.06);
+}
+
+.room-row {
+    display: grid;
+    grid-template-columns: 2fr 1fr 0.8fr 1fr 80px;
+    padding: 1rem 1.5rem;
+    align-items: center;
+    border-bottom: 1px solid rgba(15, 30, 61, 0.04);
+    transition: background 0.2s ease;
+    animation: rowFadeIn 0.3s ease-out;
+}
+
+.room-row:last-child {
+    border-bottom: none;
+}
+
+.room-row:hover {
+    background: rgba(201, 169, 110, 0.03);
+}
+
+.room-name-cell {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.room-icon-box {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, rgba(46, 139, 130, 0.1), rgba(46, 139, 130, 0.03));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #2e8b82;
+    flex-shrink: 0;
+}
+
+.room-icon-box svg {
+    width: 18px;
+    height: 18px;
+}
+
+.room-name {
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: var(--text-dark);
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 1000px) {
+    .room-form {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .room-form .add-faculty-btn {
+        grid-column: 1 / -1;
+    }
+}
+
+@media (max-width: 640px) {
+    .room-form {
+        grid-template-columns: 1fr;
+    }
+
+    .room-table-head,
+    .room-row {
+        grid-template-columns: 1.5fr 1fr 60px;
+    }
+
+    /* hide capacity & type on tiny screens */
+    .room-table-head .table-head-cell:nth-child(3),
+    .room-table-head .table-head-cell:nth-child(4),
+    .room-row>.capacity-indicator,
+    .room-row>.room-type-badge {
+        display: none;
+    }
+}

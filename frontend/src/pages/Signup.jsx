@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import "../App.css";
 
@@ -75,6 +75,50 @@ function Signup() {
   const handleKeyPress = (e) => {
     if (e.key === "Enter") {
       signup();
+    }
+  };
+
+  // Initialize Google OAuth
+  const GOOGLE_CLIENT_ID = "YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com"; // Replace with actual client ID
+  const IS_DEV_MODE = GOOGLE_CLIENT_ID.startsWith("YOUR_GOOGLE_CLIENT_ID");
+
+  useEffect(() => {
+    if (!IS_DEV_MODE && window.google) {
+      window.google.accounts.id.initialize({
+        client_id: GOOGLE_CLIENT_ID,
+        callback: handleGoogleResponse,
+      });
+    }
+  }, []);
+
+  const handleGoogleResponse = (response) => {
+    if (response.credential) {
+      // In production, send this credential to your backend for verification
+      localStorage.setItem("token", response.credential);
+      window.location.href = "/";
+    }
+  };
+
+  const handleGoogleSignup = () => {
+    if (IS_DEV_MODE) {
+      // Development mode: simulate successful Google signup
+      const mockToken = `google-oauth-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      localStorage.setItem("token", mockToken);
+      localStorage.setItem("google_user", JSON.stringify({
+        email: "demo@example.com",
+        name: "Demo User",
+        picture: "https://via.placeholder.com/96"
+      }));
+      window.location.href = "/";
+    } else if (window.google) {
+      // Production mode: use real Google OAuth
+      window.google.accounts.id.prompt((notification) => {
+        if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+          console.log("Google One Tap not available, user needs to click button");
+        }
+      });
+    } else {
+      alert("Google Sign-In is not available. Please try again later.");
     }
   };
 
@@ -168,11 +212,7 @@ function Signup() {
           <button
             className="google-btn"
             id="google-signup"
-            onClick={() => {
-              localStorage.setItem("token", "google-oauth-token");
-              navigate("/", { replace: true });
-              window.location.reload();
-            }}
+            onClick={handleGoogleSignup}
             disabled={isLoading}
           >
             <svg className="google-icon" viewBox="0 0 24 24" width="20" height="20">

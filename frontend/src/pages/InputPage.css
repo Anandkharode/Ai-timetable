@@ -27,7 +27,7 @@
   background: var(--bg-cream);
   position: relative;
   overflow-x: hidden;
-  padding: 2rem 1rem;
+  padding: 3rem 2rem 2rem;
 }
 
 /* Background Elements */
@@ -111,7 +111,7 @@
 .input-container {
   position: relative;
   z-index: 1;
-  max-width: 900px;
+  max-width: 1200px;
   margin: 0 auto;
   animation: slideUp 0.6s ease-out;
 }
@@ -132,7 +132,7 @@
 .input-header {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
+  align-items: center;
   margin-bottom: 2.5rem;
   gap: 2rem;
   animation: fadeIn 0.8s ease-out 0.2s both;

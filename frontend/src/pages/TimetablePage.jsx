@@ -63,7 +63,7 @@ function TimetablePage() {
   };
 
   const handleEdit = () => {
-    navigate("/input");
+    navigate("/create");
   };
 
   if (isLoading) {

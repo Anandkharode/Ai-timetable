@@ -2,32 +2,27 @@
 
 An intelligent, automated timetable generation system for educational institutions. Built with React, Node.js, and MongoDB, this application uses AI algorithms to create conflict-free academic schedules with smart faculty and room allocation.
 
-![License](https://img.shields.io/badge/license-MIT-blue.svg)
-![React](https://img.shields.io/badge/React-19.2-61dafb.svg)
-![Node.js](https://img.shields.io/badge/Node.js-18+-339933.svg)
-![MongoDB](https://img.shields.io/badge/MongoDB-7.0+-47A248.svg)
 
-## ✨ Features
 
 ### Core Functionality
-- 🤖 **AI-Powered Scheduling** - Intelligent algorithms for conflict-free timetable generation
-- 👥 **Faculty Management** - Add, edit, and manage faculty members with departments and subjects
-- 🏫 **Room Allocation** - Smart room assignment with capacity and type tracking
-- 📊 **Dashboard Analytics** - Visual overview of schedules, faculty, and room statistics
-- 📅 **Interactive Timetable View** - Beautiful, responsive timetable display with color-coded subjects
-- ⚙️ **Customizable Settings** - Configure institution details, working days, time slots, and breaks
+- **AI-Powered Scheduling** - Intelligent algorithms for conflict-free timetable generation
+- **Faculty Management** - Add, edit, and manage faculty members with departments and subjects
+- **Room Allocation** - Smart room assignment with capacity and type tracking
+- **Dashboard Analytics** - Visual overview of schedules, faculty, and room statistics
+- **Interactive Timetable View** - Beautiful, responsive timetable display with color-coded subjects
+- **Customizable Settings** - Configure institution details, working days, time slots, and breaks
 
 ### User Experience
-- 🌙 **Dark Mode** - Fully functional dark theme with persistent preference
-- 📱 **Responsive Design** - Optimized for desktop, tablet, and mobile devices
-- 🔐 **Authentication** - Secure login/signup with JWT tokens
-- 🔍 **Google Sign-In** - Quick authentication with Google OAuth (development mode included)
-- 👤 **Profile Management** - Edit user profiles, change passwords, and upload avatars
-- 🎨 **Modern UI/UX** - Premium design with smooth animations and transitions
+-  **Dark Mode** - Fully functional dark theme with persistent preference
+-  **Responsive Design** - Optimized for desktop, tablet, and mobile devices
+- **Authentication** - Secure login/signup with JWT tokens
+-  **Google Sign-In** - Quick authentication with Google OAuth (development mode included)
+-  **Profile Management** - Edit user profiles, change passwords, and upload avatars
+- **Modern UI/UX** - Premium design with smooth animations and transitions
 
 ### Export & Integration
-- 🖨️ **Print Support** - Print-optimized timetables for distribution
-- 💾 **Local Storage** - Client-side persistence for settings and preferences
+- **Print Support** - Print-optimized timetables for distribution
+- **Local Storage** - Client-side persistence for settings and preferences
 
 ---
 
@@ -130,12 +125,6 @@ Ensure MongoDB is running on your system:
 net start MongoDB
 ```
 
-**macOS/Linux:**
-```bash
-sudo systemctl start mongod
-# or
-brew services start mongodb-community
-```
 
 ### Start the Backend Server
 
@@ -166,56 +155,7 @@ http://localhost:5173
 
 ---
 
-## 📁 Project Structure
 
-```
-ai-timetable/
-├── backend/
-│   ├── config/
-│   │   └── db.js              # MongoDB connection configuration
-│   ├── controllers/
-│   │   └── authController.js  # Authentication logic
-│   ├── models/
-│   │   ├── User.js           # User model schema
-│   │   └── Timetable.js      # Timetable model schema
-│   ├── routes/
-│   │   ├── auth.js           # Authentication routes
-│   │   ├── timetable.js      # Timetable routes
-│   │   └── index.js          # Main router
-│   ├── .env                   # Environment variables (create this)
-│   ├── package.json
-│   └── server.js             # Express server entry point
-│
-├── frontend/
-│   ├── public/               # Static assets
-│   ├── src/
-│   │   ├── pages/
-│   │   │   ├── Dashboard.jsx       # Main dashboard
-│   │   │   ├── Login.jsx           # Login page
-│   │   │   ├── Signup.jsx          # Signup page
-│   │   │   ├── FacultyPanel.jsx    # Faculty management
-│   │   │   ├── RoomsPanel.jsx      # Room management
-│   │   │   ├── SettingsPanel.jsx   # Settings configuration
-│   │   │   ├── ProfilePanel.jsx    # User profile
-│   │   │   ├── InputPage.jsx       # Schedule creation
-│   │   │   └── TimetablePage.jsx   # Timetable view
-│   │   ├── utils/
-│   │   │   ├── facultyStore.js     # Faculty localStorage management
-│   │   │   ├── roomStore.js        # Room localStorage management
-│   │   │   └── settingsStore.js    # Settings localStorage management
-│   │   ├── App.jsx           # Main app component with routing
-│   │   ├── App.css           # Global styles & dark mode
-│   │   ├── index.css         # Base styles
-│   │   └── main.jsx          # React entry point
-│   ├── index.html
-│   ├── package.json
-│   └── vite.config.js        # Vite configuration
-│
-├── .gitignore
-└── README.md
-```
-
----
 
 ## 🎮 Usage Guide
 
@@ -322,61 +262,5 @@ npm run lint
 | `MONGO_URI` | MongoDB connection string | `mongodb://localhost:27017/timetable` |
 | `JWT_SECRET` | Secret key for JWT tokens | `your_secret_key` |
 
-### Frontend (Optional)
 
-For production deployment, you may need to configure API endpoints. Update fetch URLs in components to use environment variables.
 
----
-
-## 🤝 Contributing
-
-Contributions are welcome! Please follow these steps:
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
-
----
-
-## 📄 License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
-
----
-
-## 👥 Authors
-
-- **Anand Kharode** - *Initial work* - [GitHub](https://github.com/Anandkharode)
-
----
-
-## 🙏 Acknowledgments
-
-- Google Fonts for typography
-- React community for excellent documentation
-- MongoDB team for the powerful database
-- Vite for blazing-fast development experience
-
----
-
-## 📞 Support
-
-For support, email anandkharode251@gmail.com or open an issue in the repository.
-
----
-
-## 🔮 Future Enhancements
-
-- [ ] Export timetables to PDF
-- [ ] Email notifications for schedule changes
-- [ ] Multi-institution support
-- [ ] Advanced conflict resolution algorithms
-- [ ] Mobile app (React Native)
-- [ ] Teacher availability preferences
-- [ ] Automatic backup and restore
-
----
-
-**Made with ❤️ for Educational Institutions**

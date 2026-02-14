@@ -622,6 +622,28 @@
     color: var(--text-medium);
 }
 
+.card-delete-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(209, 73, 91, 0.05);
+    color: #d1495b;
+    border: none;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    opacity: 0.5;
+}
+
+.card-delete-btn:hover {
+    background: rgba(209, 73, 91, 0.15);
+    color: #ae3e4e;
+    opacity: 1;
+    transform: scale(1.1);
+}
+
 .card-title {
     font-family: 'Cormorant Garamond', serif;
     font-size: 1.35rem;

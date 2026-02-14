@@ -1,12 +1,16 @@
 const express = require("express");
 const {
   createTimetable,
-  getTimetable,
+  getSavedTimetables,
+  deleteTimetable,
+  getTimetableById
 } = require("../controllers/timetableController");
 
 const router = express.Router();
 
-router.post("/create", createTimetable);
-router.get("/", getTimetable);
+router.post("/save", createTimetable);
+router.get("/", getSavedTimetables);
+router.get("/:id", getTimetableById);
+router.delete("/:id", deleteTimetable);
 
 module.exports = router;

@@ -1,8 +1,3 @@
-/**
- * Settings Store – localStorage-backed persistence
- * Stores application preferences.
- */
-
 const STORAGE_KEY = "ai_timetable_settings";
 
 const DEFAULT_SETTINGS = {

@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { getFaculty } from "../utils/facultyStore";
+import { getSettings } from "../utils/settingsStore";
+import { generateTimeSlots } from "../utils/timetableUtils";
 import "./InputPage.css";
 
 /* ───── Faculty Dropdown Component ───── */
@@ -157,6 +159,8 @@ function InputPage() {
   const [subjects, setSubjects] = useState([
     { subject: "", faculty: "", lecturesPerWeek: 1 }
   ]);
+  const [scheduleTitle, setScheduleTitle] = useState("");
+  const [scheduleDesc, setScheduleDesc] = useState("");
 
   const [errors, setErrors] = useState({});
   const [isGenerating, setIsGenerating] = useState(false);
@@ -208,27 +212,54 @@ function InputPage() {
   };
 
   const generateTimetable = async () => {
-    if (!validate()) {
+    if (!validate()) return;
+    if (!scheduleTitle.trim()) {
+      setErrors({ general: "Please provide a title for your schedule." });
       return;
     }
 
     setIsGenerating(true);
 
     try {
-      const res = await fetch("http://localhost:5000/api/ai/generate", {
+      // 1. Generate entries using AI
+      const currentSettings = getSettings();
+      const currentSlots = generateTimeSlots(currentSettings);
+
+      const genRes = await fetch("http://localhost:5000/api/ai/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ subjects }),
+        body: JSON.stringify({
+          subjects,
+          days: currentSettings.workingDays,
+          slots: currentSlots
+        }),
+      });
+      const genData = await genRes.json();
+
+      if (!genRes.ok) throw new Error(genData.error || "AI generation failed");
+
+      // 2. Save the generated timetable permanently
+      const saveRes = await fetch("http://localhost:5000/api/timetable/save", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: scheduleTitle,
+          description: scheduleDesc || "Generated AI Schedule",
+          entries: genData.timetable,
+          settings: currentSettings
+        }),
       });
 
-      if (res.ok) {
-        navigate("/timetable");
+      if (saveRes.ok) {
+        const savedData = await saveRes.json();
+        navigate(`/timetable?id=${savedData._id}`);
       } else {
-        setErrors({ general: "Failed to generate timetable. Please try again." });
+        const errData = await saveRes.json();
+        setErrors({ general: errData.message || "Failed to save generated timetable." });
       }
     } catch (err) {
       console.error(err);
-      setErrors({ general: "Network error. Please check your connection." });
+      setErrors({ general: err.message || "Something went wrong. Please try again." });
     } finally {
       setIsGenerating(false);
     }
@@ -249,6 +280,26 @@ function InputPage() {
             <p className="input-subtitle">
               Add your subjects and let us create the perfect timetable
             </p>
+            <div className="header-meta-fields">
+              <div className="meta-field">
+                <input
+                  type="text"
+                  placeholder="Schedule Title (e.g. Spring 2026)"
+                  value={scheduleTitle}
+                  onChange={(e) => setScheduleTitle(e.target.value)}
+                  className={`title-input ${errors.general && !scheduleTitle ? "error" : ""}`}
+                />
+              </div>
+              <div className="meta-field">
+                <input
+                  type="text"
+                  placeholder="Short description (optional)"
+                  value={scheduleDesc}
+                  onChange={(e) => setScheduleDesc(e.target.value)}
+                  className="desc-input"
+                />
+              </div>
+            </div>
           </div>
           <div className="subject-count">
             <span className="count-number">{subjects.length}</span>

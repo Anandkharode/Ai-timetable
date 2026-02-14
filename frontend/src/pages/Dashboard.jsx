@@ -87,73 +87,36 @@ const Icons = {
     ),
 };
 
-/* ───────── Sample Timetable Data ───────── */
-const sampleTimetables = [
-    {
-        id: 1,
-        title: "Spring 2026 – CS Department",
-        description: "Complete schedule for Computer Science department including labs, tutorials, and lectures.",
-        status: "active",
-        date: "Feb 10, 2026",
-        faculty: 24,
-        rooms: 12,
-    },
-    {
-        id: 2,
-        title: "Final Exams Schedule",
-        description: "End-semester examination timetable with room allocations and invigilator assignments.",
-        status: "active",
-        date: "Feb 8, 2026",
-        faculty: 32,
-        rooms: 18,
-    },
-    {
-        id: 3,
-        title: "SY IT Semester Plan",
-        description: "Second year Information Technology semester-long academic schedule with elective slots.",
-        status: "draft",
-        date: "Feb 5, 2026",
-        faculty: 16,
-        rooms: 8,
-    },
-    {
-        id: 4,
-        title: "Workshop & Lab Sessions",
-        description: "Specialized lab and workshop sessions across engineering departments for hands-on learning.",
-        status: "active",
-        date: "Jan 28, 2026",
-        faculty: 10,
-        rooms: 6,
-    },
-    {
-        id: 5,
-        title: "Summer Bridge Program",
-        description: "Intensive summer schedule for incoming freshmen covering orientation and preparatory courses.",
-        status: "archived",
-        date: "Jan 15, 2026",
-        faculty: 8,
-        rooms: 4,
-    },
-    {
-        id: 6,
-        title: "Faculty Development Week",
-        description: "Training and development sessions for faculty members including research methodology workshops.",
-        status: "draft",
-        date: "Jan 10, 2026",
-        faculty: 42,
-        rooms: 6,
-    },
-];
+
 
 /* ───────── Dashboard Component ───────── */
 export default function Dashboard() {
     const [activeNav, setActiveNav] = useState("dashboard");
-    const [activeFilter, setActiveFilter] = useState("all");
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [showUserMenu, setShowUserMenu] = useState(false);
     const [facultyCount, setFacultyCount] = useState(0);
     const [roomCount, setRoomCount] = useState(0);
     const navigate = useNavigate();
+
+    const [savedTimetables, setSavedTimetables] = useState([]);
+    const [isLoading, setIsLoading] = useState(true);
+
+    // Fetch saved timetables
+    useEffect(() => {
+        const fetchTimetables = async () => {
+            setIsLoading(true);
+            try {
+                const res = await fetch("http://localhost:5000/api/timetable");
+                const data = await res.json();
+                setSavedTimetables(Array.isArray(data) ? data : []);
+            } catch (err) {
+                console.error("Failed to fetch timetables", err);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        fetchTimetables();
+    }, []);
 
     // Refresh counts when switching tabs or on mount
     useEffect(() => {
@@ -175,23 +138,13 @@ export default function Dashboard() {
         { id: "settings", label: "Settings", icon: <Icons.Settings /> },
     ];
 
-    const filters = [
-        { id: "all", label: "All" },
-        { id: "active", label: "Active" },
-        { id: "draft", label: "Draft" },
-        { id: "archived", label: "Archived" },
-    ];
 
-    const filteredTimetables =
-        activeFilter === "all"
-            ? sampleTimetables
-            : sampleTimetables.filter((t) => t.status === activeFilter);
 
     const stats = [
         {
             icon: <Icons.Calendar />,
-            value: sampleTimetables.length,
-            label: "Timetables",
+            value: savedTimetables.length,
+            label: "Generated Schedules",
             className: "timetables",
         },
         {
@@ -216,6 +169,26 @@ export default function Dashboard() {
 
     const handleCreateNew = () => {
         navigate("/create");
+    };
+
+    const handleDelete = async (id, e) => {
+        e.stopPropagation();
+        if (window.confirm("Are you sure you want to delete this timetable?")) {
+            try {
+                const res = await fetch(`http://localhost:5000/api/timetable/${id}`, {
+                    method: "DELETE",
+                });
+                if (res.ok) {
+                    setSavedTimetables(savedTimetables.filter((t) => t._id !== id));
+                }
+            } catch (err) {
+                console.error("Failed to delete", err);
+            }
+        }
+    };
+
+    const handleCardClick = (id) => {
+        navigate(`/timetable?id=${id}`);
     };
 
     return (
@@ -335,7 +308,7 @@ export default function Dashboard() {
                             <div className="header-left">
                                 <span className="page-greeting">Welcome back, Admin 👋</span>
                                 <h1 className="page-title">
-                                    Your <span>Timetables</span>
+                                    Dashboard <span>Overview</span>
                                 </h1>
                             </div>
                             <button
@@ -348,58 +321,35 @@ export default function Dashboard() {
                             </button>
                         </header>
 
-                        {/* Stats */}
-                        <div className="stats-row">
-                            {stats.map((s, idx) => (
-                                <div className="stat-card" key={idx} id={`stat-${s.className}`}>
-                                    <div className={`stat-icon ${s.className}`}>{s.icon}</div>
-                                    <div className="stat-details">
-                                        <span className="stat-value">{s.value}</span>
-                                        <span className="stat-label">{s.label}</span>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-
-                        {/* Section header with filters */}
+                        {/* Section header */}
                         <div className="section-header">
-                            <h2 className="section-title">Recent Timetables</h2>
-                            <div className="section-filter">
-                                {filters.map((f) => (
-                                    <button
-                                        key={f.id}
-                                        id={`filter-${f.id}`}
-                                        className={`filter-btn ${activeFilter === f.id ? "active" : ""}`}
-                                        onClick={() => setActiveFilter(f.id)}
-                                    >
-                                        {f.label}
-                                    </button>
-                                ))}
-                            </div>
+                            <h2 className="section-title">Your Timetables</h2>
                         </div>
 
                         {/* Card grid */}
                         <div className="card-grid">
-                            {filteredTimetables.length === 0 ? (
+                            {isLoading ? (
+                                <div className="loading-placeholder">Loading your schedules...</div>
+                            ) : savedTimetables.length === 0 ? (
                                 <div className="empty-state">
                                     <div className="empty-icon">
                                         <Icons.Layers />
                                     </div>
                                     <h3 className="empty-title">No timetables found</h3>
                                     <p className="empty-desc">
-                                        There are no timetables matching this filter. Try a different
-                                        filter or create a new timetable.
+                                        Create your first institutional timetable to see it here.
                                     </p>
                                 </div>
                             ) : (
-                                filteredTimetables.map((tt) => (
+                                savedTimetables.map((tt) => (
                                     <article
                                         className="timetable-card"
-                                        key={tt.id}
-                                        id={`timetable-card-${tt.id}`}
+                                        key={tt._id}
+                                        id={`timetable-card-${tt._id}`}
+                                        onClick={() => handleCardClick(tt._id)}
                                     >
                                         <div className="card-header">
-                                            <span className={`card-badge ${tt.status}`}>
+                                            <span className="card-badge active">
                                                 <span
                                                     style={{
                                                         width: 6,
@@ -408,10 +358,17 @@ export default function Dashboard() {
                                                         background: "currentColor",
                                                     }}
                                                 />
-                                                {tt.status}
+                                                Saved
                                             </span>
-                                            <button className="card-menu-btn" aria-label="Card options">
-                                                <Icons.MoreVertical />
+                                            <button
+                                                className="card-delete-btn"
+                                                aria-label="Delete timetable"
+                                                onClick={(e) => handleDelete(tt._id, e)}
+                                            >
+                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                    <polyline points="3 6 5 6 21 6"></polyline>
+                                                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                                </svg>
                                             </button>
                                         </div>
                                         <h3 className="card-title">{tt.title}</h3>
@@ -421,19 +378,13 @@ export default function Dashboard() {
                                                 <span className="meta-icon">
                                                     <Icons.Calendar />
                                                 </span>
-                                                {tt.date}
+                                                {new Date(tt.createdAt).toLocaleDateString()}
                                             </span>
                                             <span className="meta-item">
                                                 <span className="meta-icon">
                                                     <Icons.Faculty />
                                                 </span>
-                                                {tt.faculty} Faculty
-                                            </span>
-                                            <span className="meta-item">
-                                                <span className="meta-icon">
-                                                    <Icons.Rooms />
-                                                </span>
-                                                {tt.rooms} Rooms
+                                                {tt.entries.length} Slots
                                             </span>
                                         </div>
                                     </article>

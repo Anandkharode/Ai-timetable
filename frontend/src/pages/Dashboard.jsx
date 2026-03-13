@@ -216,7 +216,7 @@ export default function Dashboard() {
                         <Icons.Sparkle />
                     </div>
                     <div className="brand-text">
-                        <span className="brand-name">AI Timetable</span>
+                        <span className="brand-name">Timetable</span>
                         <span className="brand-tagline">Smart Scheduling</span>
                     </div>
                 </div>

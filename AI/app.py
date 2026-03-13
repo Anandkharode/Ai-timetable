@@ -5,7 +5,7 @@ import random
 app = Flask(__name__)
 CORS(app)
 
-DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
+DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday","Saturday"]
 SLOTS = ["9-10", "10-11", "11-12", "1-2", "2-3"]
 ROOMS = ["R1", "R2"]
 

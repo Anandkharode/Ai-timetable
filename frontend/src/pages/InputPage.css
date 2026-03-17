@@ -908,3 +908,54 @@
     transition-duration: 0.01ms !important;
   }
 }
+
+.year-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.year-section {
+  position: relative;
+  padding: 1.5rem;
+  border: 1px solid rgba(15, 30, 61, 0.08);
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(16px);
+}
+
+.year-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.year-section-title {
+  margin: 0;
+  font-size: 1.5rem;
+  color: var(--text-dark);
+}
+
+.year-section-subtitle {
+  margin: 0.35rem 0 0;
+  color: var(--text-light);
+}
+
+.year-section-badge {
+  padding: 0.55rem 0.9rem;
+  border-radius: 999px;
+  background: rgba(15, 30, 61, 0.06);
+  color: var(--text-dark);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.year-add-btn {
+  margin-top: 1rem;
+}
+
+.group-error {
+  margin-bottom: 1rem;
+}

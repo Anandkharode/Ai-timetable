@@ -2,10 +2,23 @@ const SavedTimetable = require("../models/SavedTimetable");
 
 exports.createTimetable = async (req, res) => {
   try {
-    const { title, entries, settings, description } = req.body;
+    const {
+      title,
+      entries,
+      settings,
+      description,
+      department,
+      groups,
+      summary,
+      unscheduled
+    } = req.body;
     const newTimetable = new SavedTimetable({
       title,
       description: description || "Generated Timetable",
+      department: department || "",
+      groups: groups || [],
+      summary: summary || {},
+      unscheduled: unscheduled || [],
       entries,
       settings
     });

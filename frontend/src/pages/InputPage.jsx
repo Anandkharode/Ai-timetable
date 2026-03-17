@@ -5,7 +5,14 @@ import { getSettings } from "../utils/settingsStore";
 import { generateTimeSlots } from "../utils/timetableUtils";
 import "./InputPage.css";
 
-/* ───── Faculty Dropdown Component ───── */
+const YEAR_GROUPS = [
+  { year: "2nd Year", section: "A" },
+  { year: "3rd Year", section: "A" },
+  { year: "4th Year", section: "A" },
+];
+
+const createEmptySubject = () => ({ subject: "", faculty: "", lecturesPerWeek: 1 });
+
 function FacultySelect({ value, onChange, error, id }) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -16,13 +23,13 @@ function FacultySelect({ value, onChange, error, id }) {
     setFacultyList(getFaculty());
   }, []);
 
-  // Close on outside click
   useEffect(() => {
     function handleClick(e) {
       if (wrapperRef.current && !wrapperRef.current.contains(e.target)) {
         setOpen(false);
       }
     }
+
     document.addEventListener("mousedown", handleClick);
     return () => document.removeEventListener("mousedown", handleClick);
   }, []);
@@ -31,17 +38,6 @@ function FacultySelect({ value, onChange, error, id }) {
     f.name.toLowerCase().includes(search.toLowerCase()) ||
     f.department.toLowerCase().includes(search.toLowerCase())
   );
-
-  const handleSelect = (faculty) => {
-    onChange(faculty.name);
-    setSearch("");
-    setOpen(false);
-  };
-
-  const handleClear = () => {
-    onChange("");
-    setSearch("");
-  };
 
   const hasStoredFaculty = facultyList.length > 0;
 
@@ -69,10 +65,14 @@ function FacultySelect({ value, onChange, error, id }) {
                 {value}
                 <button
                   className="select-clear"
-                  onClick={(e) => { e.stopPropagation(); handleClear(); }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onChange("");
+                    setSearch("");
+                  }}
                   aria-label="Clear selection"
                 >
-                  ✕
+                  x
                 </button>
               </span>
             ) : (
@@ -105,7 +105,11 @@ function FacultySelect({ value, onChange, error, id }) {
                     <div
                       key={f.id}
                       className={`dropdown-item ${value === f.name ? "selected" : ""}`}
-                      onClick={() => handleSelect(f)}
+                      onClick={() => {
+                        onChange(f.name);
+                        setSearch("");
+                        setOpen(false);
+                      }}
                     >
                       <span className="dropdown-avatar">
                         {f.name.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2)}
@@ -114,31 +118,25 @@ function FacultySelect({ value, onChange, error, id }) {
                         <span className="dropdown-item-name">{f.name}</span>
                         <span className="dropdown-item-dept">{f.department}</span>
                       </span>
-                      {value === f.name && (
-                        <span className="dropdown-check">✓</span>
-                      )}
+                      {value === f.name && <span className="dropdown-check">OK</span>}
                     </div>
                   ))
                 )}
               </div>
-              <div className="dropdown-footer">
-                Or type a name manually below
-              </div>
+              <div className="dropdown-footer">Or type a name manually below</div>
             </div>
           )}
 
-          {/* Fallback manual input */}
           <input
             type="text"
             className="faculty-manual-input"
             placeholder="Or type name manually..."
-            value={value && !facultyList.find(f => f.name === value) ? value : ""}
+            value={value && !facultyList.find((f) => f.name === value) ? value : ""}
             onChange={(e) => onChange(e.target.value)}
             style={{ marginTop: "0.5rem" }}
           />
         </>
       ) : (
-        /* If no saved faculty, show regular text input */
         <input
           id={id}
           type="text"
@@ -152,59 +150,93 @@ function FacultySelect({ value, onChange, error, id }) {
   );
 }
 
-/* ───── Main InputPage ───── */
 function InputPage() {
   const navigate = useNavigate();
-
-  const [subjects, setSubjects] = useState([
-    { subject: "", faculty: "", lecturesPerWeek: 1 }
-  ]);
   const [scheduleTitle, setScheduleTitle] = useState("");
   const [scheduleDesc, setScheduleDesc] = useState("");
-
+  const [department, setDepartment] = useState("");
+  const [groupConfigs, setGroupConfigs] = useState(
+    YEAR_GROUPS.map((group) => ({
+      ...group,
+      subjects: [createEmptySubject()],
+    }))
+  );
   const [errors, setErrors] = useState({});
   const [isGenerating, setIsGenerating] = useState(false);
 
-  const handleChange = (index, field, value) => {
-    const updated = [...subjects];
-    updated[index][field] = value;
-    setSubjects(updated);
+  const updateSubject = (groupIndex, subjectIndex, field, value) => {
+    setGroupConfigs((current) =>
+      current.map((group, gi) => {
+        if (gi !== groupIndex) return group;
+        return {
+          ...group,
+          subjects: group.subjects.map((subject, si) =>
+            si === subjectIndex ? { ...subject, [field]: value } : subject
+          ),
+        };
+      })
+    );
 
-    // Clear errors for this field
-    if (errors[`${index}-${field}`]) {
-      const newErrors = { ...errors };
-      delete newErrors[`${index}-${field}`];
-      setErrors(newErrors);
+    const errorKey = `${groupIndex}-${subjectIndex}-${field}`;
+    if (errors[errorKey]) {
+      const nextErrors = { ...errors };
+      delete nextErrors[errorKey];
+      setErrors(nextErrors);
     }
   };
 
-  const addSubject = () => {
-    setSubjects([
-      ...subjects,
-      { subject: "", faculty: "", lecturesPerWeek: 1 }
-    ]);
+  const addSubject = (groupIndex) => {
+    setGroupConfigs((current) =>
+      current.map((group, gi) =>
+        gi === groupIndex
+          ? { ...group, subjects: [...group.subjects, createEmptySubject()] }
+          : group
+      )
+    );
   };
 
-  const removeSubject = (index) => {
-    if (subjects.length > 1) {
-      const updated = subjects.filter((_, i) => i !== index);
-      setSubjects(updated);
-    }
+  const removeSubject = (groupIndex, subjectIndex) => {
+    setGroupConfigs((current) =>
+      current.map((group, gi) => {
+        if (gi !== groupIndex || group.subjects.length === 1) return group;
+        return {
+          ...group,
+          subjects: group.subjects.filter((_, si) => si !== subjectIndex),
+        };
+      })
+    );
   };
 
   const validate = () => {
     const newErrors = {};
 
-    subjects.forEach((sub, index) => {
-      if (!sub.subject.trim()) {
-        newErrors[`${index}-subject`] = "Subject is required";
+    if (!scheduleTitle.trim()) {
+      newErrors.general = "Please provide a title for your schedule.";
+    }
+
+    groupConfigs.forEach((group, groupIndex) => {
+      const validSubjects = group.subjects.filter(
+        (sub) => sub.subject.trim() || sub.faculty.trim() || Number(sub.lecturesPerWeek) > 1
+      );
+
+      if (validSubjects.length === 0) {
+        newErrors[`group-${groupIndex}`] = `Add at least one subject for ${group.year}.`;
       }
-      if (!sub.faculty.trim()) {
-        newErrors[`${index}-faculty`] = "Faculty is required";
-      }
-      if (sub.lecturesPerWeek < 1) {
-        newErrors[`${index}-lecturesPerWeek`] = "Must be at least 1";
-      }
+
+      group.subjects.forEach((sub, subjectIndex) => {
+        const touched = sub.subject.trim() || sub.faculty.trim() || Number(sub.lecturesPerWeek) > 1;
+        if (!touched) return;
+
+        if (!sub.subject.trim()) {
+          newErrors[`${groupIndex}-${subjectIndex}-subject`] = "Subject is required";
+        }
+        if (!sub.faculty.trim()) {
+          newErrors[`${groupIndex}-${subjectIndex}-faculty`] = "Faculty is required";
+        }
+        if (Number(sub.lecturesPerWeek) < 1) {
+          newErrors[`${groupIndex}-${subjectIndex}-lecturesPerWeek`] = "Must be at least 1";
+        }
+      });
     });
 
     setErrors(newErrors);
@@ -213,50 +245,67 @@ function InputPage() {
 
   const generateTimetable = async () => {
     if (!validate()) return;
-    if (!scheduleTitle.trim()) {
-      setErrors({ general: "Please provide a title for your schedule." });
-      return;
-    }
 
     setIsGenerating(true);
 
     try {
-      // 1. Generate entries using AI
       const currentSettings = getSettings();
       const currentSlots = generateTimeSlots(currentSettings);
+
+      const groups = groupConfigs.map((group) => ({
+        department: department.trim(),
+        year: group.year,
+        section: group.section,
+        subjects: group.subjects
+          .filter((sub) => sub.subject.trim() && sub.faculty.trim())
+          .map((sub) => ({
+            subject: sub.subject.trim(),
+            faculty: sub.faculty.trim(),
+            lecturesPerWeek: Number(sub.lecturesPerWeek) || 1,
+          })),
+      }));
 
       const genRes = await fetch("http://localhost:5000/api/ai/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          subjects,
+          department: department.trim(),
+          groups,
           days: currentSettings.workingDays,
-          slots: currentSlots
+          slots: currentSlots,
         }),
       });
-      const genData = await genRes.json();
 
+      const genData = await genRes.json();
       if (!genRes.ok) throw new Error(genData.error || "AI generation failed");
 
-      // 2. Save the generated timetable permanently
       const saveRes = await fetch("http://localhost:5000/api/timetable/save", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          title: scheduleTitle,
+          title: scheduleTitle.trim(),
           description: scheduleDesc || "Generated AI Schedule",
+          department: department.trim(),
+          groups: groups.map((group) => ({
+            department: group.department,
+            year: group.year,
+            section: group.section,
+            subjectCount: group.subjects.length,
+          })),
           entries: genData.timetable,
-          settings: currentSettings
+          unscheduled: genData.unscheduled || [],
+          summary: genData.summary || {},
+          settings: currentSettings,
         }),
       });
 
-      if (saveRes.ok) {
-        const savedData = await saveRes.json();
-        navigate(`/timetable?id=${savedData._id}`);
-      } else {
+      if (!saveRes.ok) {
         const errData = await saveRes.json();
-        setErrors({ general: errData.message || "Failed to save generated timetable." });
+        throw new Error(errData.message || "Failed to save generated timetable.");
       }
+
+      const savedData = await saveRes.json();
+      navigate(`/timetable?id=${savedData._id}`);
     } catch (err) {
       console.error(err);
       setErrors({ general: err.message || "Something went wrong. Please try again." });
@@ -264,6 +313,8 @@ function InputPage() {
       setIsGenerating(false);
     }
   };
+
+  const totalSubjects = groupConfigs.reduce((count, group) => count + group.subjects.length, 0);
 
   return (
     <div className="input-page">
@@ -276,18 +327,27 @@ function InputPage() {
       <div className="input-container">
         <div className="input-header">
           <div className="header-content">
-            <h1 className="input-title">Build Your Schedule</h1>
+            <h1 className="input-title">Build Multi-Year Schedule</h1>
             <p className="input-subtitle">
-              Add your subjects and let us create the perfect timetable
+              Create 2nd, 3rd, and 4th year timetables together so shared faculty never clash
             </p>
             <div className="header-meta-fields">
               <div className="meta-field">
                 <input
                   type="text"
-                  placeholder="Schedule Title (e.g. Spring 2026)"
+                  placeholder="Schedule Title"
                   value={scheduleTitle}
                   onChange={(e) => setScheduleTitle(e.target.value)}
                   className={`title-input ${errors.general && !scheduleTitle ? "error" : ""}`}
+                />
+              </div>
+              <div className="meta-field">
+                <input
+                  type="text"
+                  placeholder="Department (e.g. CSE)"
+                  value={department}
+                  onChange={(e) => setDepartment(e.target.value)}
+                  className="desc-input"
                 />
               </div>
               <div className="meta-field">
@@ -302,113 +362,143 @@ function InputPage() {
             </div>
           </div>
           <div className="subject-count">
-            <span className="count-number">{subjects.length}</span>
-            <span className="count-label">Subject{subjects.length !== 1 ? 's' : ''}</span>
+            <span className="count-number">{totalSubjects}</span>
+            <span className="count-label">Rows Across 3 Years</span>
           </div>
         </div>
 
-        {errors.general && (
-          <div className="general-error-banner">
-            {errors.general}
-          </div>
-        )}
+        {errors.general && <div className="general-error-banner">{errors.general}</div>}
 
-        <div className="subjects-list">
-          {subjects.map((sub, index) => (
-            <div key={index} className="subject-card">
-              <div className="card-header">
-                <span className="card-number">{index + 1}</span>
-                {subjects.length > 1 && (
-                  <button
-                    className="remove-btn"
-                    onClick={() => removeSubject(index)}
-                    aria-label="Remove subject"
-                  >
-                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                      <path d="M15 5L5 15M5 5L15 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                    </svg>
-                  </button>
-                )}
+        <div className="year-groups">
+          {groupConfigs.map((group, groupIndex) => (
+            <section key={`${group.year}-${group.section}`} className="year-section">
+              <div className="year-section-header">
+                <div>
+                  <h2 className="year-section-title">{group.year}</h2>
+                  <p className="year-section-subtitle">
+                    Section {group.section} {department.trim() ? `• ${department.trim()}` : ""}
+                  </p>
+                </div>
+                <div className="year-section-badge">
+                  {group.subjects.length} subject{group.subjects.length !== 1 ? "s" : ""}
+                </div>
               </div>
 
-              <div className="card-inputs">
-                <div className="input-field">
-                  <label htmlFor={`subject-${index}`}>Subject Name</label>
-                  <input
-                    id={`subject-${index}`}
-                    type="text"
-                    placeholder="e.g., Mathematics"
-                    value={sub.subject}
-                    onChange={(e) => handleChange(index, "subject", e.target.value)}
-                    className={errors[`${index}-subject`] ? "error" : ""}
-                  />
-                  {errors[`${index}-subject`] && (
-                    <span className="field-error">{errors[`${index}-subject`]}</span>
-                  )}
-                </div>
+              {errors[`group-${groupIndex}`] && (
+                <div className="general-error-banner group-error">{errors[`group-${groupIndex}`]}</div>
+              )}
 
-                <div className="input-field">
-                  <label htmlFor={`faculty-${index}`}>Faculty Name</label>
-                  <FacultySelect
-                    id={`faculty-${index}`}
-                    value={sub.faculty}
-                    onChange={(val) => handleChange(index, "faculty", val)}
-                    error={errors[`${index}-faculty`]}
-                  />
-                  {errors[`${index}-faculty`] && (
-                    <span className="field-error">{errors[`${index}-faculty`]}</span>
-                  )}
-                </div>
+              <div className="subjects-list">
+                {group.subjects.map((sub, subjectIndex) => (
+                  <div key={`${group.year}-${subjectIndex}`} className="subject-card">
+                    <div className="card-header">
+                      <span className="card-number">{subjectIndex + 1}</span>
+                      {group.subjects.length > 1 && (
+                        <button
+                          className="remove-btn"
+                          onClick={() => removeSubject(groupIndex, subjectIndex)}
+                          aria-label="Remove subject"
+                        >
+                          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                            <path d="M15 5L5 15M5 5L15 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                          </svg>
+                        </button>
+                      )}
+                    </div>
 
-                <div className="input-field lectures-field">
-                  <label htmlFor={`lectures-${index}`}>Lectures per Week</label>
-                  <div className="number-input-wrapper">
-                    <button
-                      className="number-btn"
-                      onClick={() => handleChange(index, "lecturesPerWeek", Math.max(1, sub.lecturesPerWeek - 1))}
-                      aria-label="Decrease"
-                    >
-                      −
-                    </button>
-                    <input
-                      id={`lectures-${index}`}
-                      type="number"
-                      min="1"
-                      max="10"
-                      value={sub.lecturesPerWeek}
-                      onChange={(e) => handleChange(index, "lecturesPerWeek", Number(e.target.value))}
-                      className={errors[`${index}-lecturesPerWeek`] ? "error" : ""}
-                    />
-                    <button
-                      className="number-btn"
-                      onClick={() => handleChange(index, "lecturesPerWeek", Math.min(10, sub.lecturesPerWeek + 1))}
-                      aria-label="Increase"
-                    >
-                      +
-                    </button>
+                    <div className="card-inputs">
+                      <div className="input-field">
+                        <label htmlFor={`subject-${groupIndex}-${subjectIndex}`}>Subject Name</label>
+                        <input
+                          id={`subject-${groupIndex}-${subjectIndex}`}
+                          type="text"
+                          placeholder="e.g., Mathematics"
+                          value={sub.subject}
+                          onChange={(e) => updateSubject(groupIndex, subjectIndex, "subject", e.target.value)}
+                          className={errors[`${groupIndex}-${subjectIndex}-subject`] ? "error" : ""}
+                        />
+                        {errors[`${groupIndex}-${subjectIndex}-subject`] && (
+                          <span className="field-error">{errors[`${groupIndex}-${subjectIndex}-subject`]}</span>
+                        )}
+                      </div>
+
+                      <div className="input-field">
+                        <label htmlFor={`faculty-${groupIndex}-${subjectIndex}`}>Faculty Name</label>
+                        <FacultySelect
+                          id={`faculty-${groupIndex}-${subjectIndex}`}
+                          value={sub.faculty}
+                          onChange={(value) => updateSubject(groupIndex, subjectIndex, "faculty", value)}
+                          error={errors[`${groupIndex}-${subjectIndex}-faculty`]}
+                        />
+                        {errors[`${groupIndex}-${subjectIndex}-faculty`] && (
+                          <span className="field-error">{errors[`${groupIndex}-${subjectIndex}-faculty`]}</span>
+                        )}
+                      </div>
+
+                      <div className="input-field lectures-field">
+                        <label htmlFor={`lectures-${groupIndex}-${subjectIndex}`}>Lectures per Week</label>
+                        <div className="number-input-wrapper">
+                          <button
+                            className="number-btn"
+                            onClick={() =>
+                              updateSubject(
+                                groupIndex,
+                                subjectIndex,
+                                "lecturesPerWeek",
+                                Math.max(1, Number(sub.lecturesPerWeek) - 1)
+                              )
+                            }
+                            aria-label="Decrease"
+                          >
+                            -
+                          </button>
+                          <input
+                            id={`lectures-${groupIndex}-${subjectIndex}`}
+                            type="number"
+                            min="1"
+                            max="10"
+                            value={sub.lecturesPerWeek}
+                            onChange={(e) =>
+                              updateSubject(groupIndex, subjectIndex, "lecturesPerWeek", Number(e.target.value))
+                            }
+                            className={errors[`${groupIndex}-${subjectIndex}-lecturesPerWeek`] ? "error" : ""}
+                          />
+                          <button
+                            className="number-btn"
+                            onClick={() =>
+                              updateSubject(
+                                groupIndex,
+                                subjectIndex,
+                                "lecturesPerWeek",
+                                Math.min(10, Number(sub.lecturesPerWeek) + 1)
+                              )
+                            }
+                            aria-label="Increase"
+                          >
+                            +
+                          </button>
+                        </div>
+                        {errors[`${groupIndex}-${subjectIndex}-lecturesPerWeek`] && (
+                          <span className="field-error">{errors[`${groupIndex}-${subjectIndex}-lecturesPerWeek`]}</span>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                  {errors[`${index}-lecturesPerWeek`] && (
-                    <span className="field-error">{errors[`${index}-lecturesPerWeek`]}</span>
-                  )}
-                </div>
+                ))}
               </div>
-            </div>
+
+              <button className="add-subject-btn year-add-btn" onClick={() => addSubject(groupIndex)}>
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                  <path d="M10 5V15M5 10H15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                </svg>
+                Add Subject To {group.year}
+              </button>
+            </section>
           ))}
         </div>
 
-        <button className="add-subject-btn" onClick={addSubject}>
-          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-            <path d="M10 5V15M5 10H15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-          </svg>
-          Add Another Subject
-        </button>
-
         <div className="action-footer">
-          <button
-            className="generate-btn"
-            onClick={generateTimetable}
-            disabled={isGenerating}
-          >
+          <button className="generate-btn" onClick={generateTimetable} disabled={isGenerating}>
             {isGenerating ? (
               <>
                 <span className="spinner"></span>
@@ -419,7 +509,7 @@ function InputPage() {
                 <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
                   <path d="M17 10L3 10M17 10L12 5M17 10L12 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
-                Generate Timetable
+                Generate All Years Together
               </>
             )}
           </button>

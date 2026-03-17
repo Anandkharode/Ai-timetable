@@ -19,12 +19,25 @@ router.post("/generate", async (req, res) => {
       return res.status(500).json({ error: "Python AI failed" });
     }
 
-    const timetable = await response.json();
+    const generationResult = await response.json();
+    const timetable = generationResult.entries || [];
 
     await Timetable.deleteMany();
-    await Timetable.insertMany(timetable);
+    if (timetable.length > 0) {
+      await Timetable.insertMany(timetable);
+    }
 
-    res.json({ message: "Timetable generated", timetable });
+    res.json({
+      message: "Timetable generated",
+      timetable,
+      unscheduled: generationResult.unscheduled || [],
+      summary: generationResult.summary || {
+        requestedSessions: timetable.length,
+        scheduledSessions: timetable.length,
+        unscheduledSessions: 0,
+        groupCount: Array.isArray(req.body.groups) ? req.body.groups.length : 1,
+      }
+    });
   } catch (err) {
     console.error("NODE ERROR:", err);
     res.status(500).json({ error: "AI generation failed" });

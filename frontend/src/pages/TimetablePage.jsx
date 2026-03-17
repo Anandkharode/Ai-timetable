@@ -1,10 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { getSettings } from "../utils/settingsStore";
 import { generateTimeSlots } from "../utils/timetableUtils";
 import "./TimetablePage.css";
-
-const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
 
 function TimetablePage() {
   const navigate = useNavigate();
@@ -18,6 +16,7 @@ function TimetablePage() {
   const [selectedCell, setSelectedCell] = useState(null);
   const [activeSettings, setActiveSettings] = useState(getSettings());
   const [timeSlots, setTimeSlots] = useState([]);
+  const [activeGroupKey, setActiveGroupKey] = useState("");
 
   useEffect(() => {
     const fetchTimetable = async () => {
@@ -32,20 +31,27 @@ function TimetablePage() {
         const data = await res.json();
 
         if (Array.isArray(data)) {
+          const settings = getSettings();
           setTimetableData({
             title: "Preview Schedule",
             entries: data,
-            settings: getSettings()
+            settings,
+            groups: [],
+            unscheduled: [],
+            summary: {
+              requestedSessions: data.length,
+              scheduledSessions: data.length,
+              unscheduledSessions: 0,
+              groupCount: 1,
+            },
           });
-          setTimeSlots(generateTimeSlots(getSettings()));
+          setActiveSettings(settings);
+          setTimeSlots(generateTimeSlots(settings));
         } else {
           setTimetableData(data);
-          if (data.settings) {
-            setActiveSettings(data.settings);
-            setTimeSlots(generateTimeSlots(data.settings));
-          } else {
-            setTimeSlots(generateTimeSlots(getSettings()));
-          }
+          const settings = data.settings || getSettings();
+          setActiveSettings(settings);
+          setTimeSlots(generateTimeSlots(settings));
         }
       } catch (err) {
         setError(err.message);
@@ -53,35 +59,66 @@ function TimetablePage() {
         setIsLoading(false);
       }
     };
+
     fetchTimetable();
   }, [timetableId]);
 
-  const getCell = (day, slot) => {
-    if (!timetableData) return null;
-    const entry = timetableData.entries.find(
-      (t) => t.day === day && t.slot === slot
-    );
-    return entry || null;
-  };
+  const workingDays = activeSettings?.workingDays?.length
+    ? activeSettings.workingDays
+    : ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
 
-  const handleCellClick = (day, slot, entry) => {
-    if (entry) {
-      setSelectedCell({ day, slot, entry });
+  const groups = useMemo(() => {
+    if (!timetableData?.entries) return [];
+
+    const derived = new Map();
+    timetableData.entries.forEach((entry) => {
+      const year = entry.year || "General";
+      const section = entry.section || "A";
+      const key = `${year}__${section}`;
+      if (!derived.has(key)) {
+        derived.set(key, { key, year, section });
+      }
+    });
+
+    if (derived.size === 0) {
+      derived.set("General__A", { key: "General__A", year: "General", section: "A" });
     }
+
+    return Array.from(derived.values());
+  }, [timetableData]);
+
+  useEffect(() => {
+    if (groups.length > 0 && !groups.find((group) => group.key === activeGroupKey)) {
+      setActiveGroupKey(groups[0].key);
+    }
+  }, [groups, activeGroupKey]);
+
+  const activeGroup = groups.find((group) => group.key === activeGroupKey) || groups[0] || null;
+
+  const getCell = (day, slot) => {
+    if (!timetableData || !activeGroup) return null;
+    return (
+      timetableData.entries.find(
+        (entry) =>
+          entry.day === day &&
+          entry.slot === slot &&
+          (entry.year || "General") === activeGroup.year &&
+          (entry.section || "A") === activeGroup.section
+      ) || null
+    );
   };
 
   const getSubjectColor = (subject) => {
-    // Generate consistent colors based on subject name
-    const hash = subject.split('').reduce((acc, char) => {
+    const hash = subject.split("").reduce((acc, char) => {
       return char.charCodeAt(0) + ((acc << 5) - acc);
     }, 0);
 
     const colors = [
-      { bg: 'rgba(201, 169, 110, 0.15)', border: '#c9a96e', text: '#6b5d3f' },
-      { bg: 'rgba(82, 166, 117, 0.15)', border: '#52a675', text: '#2d5a42' },
-      { bg: 'rgba(106, 134, 198, 0.15)', border: '#6a86c6', text: '#3a4a75' },
-      { bg: 'rgba(209, 73, 91, 0.15)', border: '#d1495b', text: '#7a2a35' },
-      { bg: 'rgba(147, 112, 219, 0.15)', border: '#9370db', text: '#5a4281' },
+      { bg: "rgba(201, 169, 110, 0.15)", border: "#c9a96e", text: "#6b5d3f" },
+      { bg: "rgba(82, 166, 117, 0.15)", border: "#52a675", text: "#2d5a42" },
+      { bg: "rgba(106, 134, 198, 0.15)", border: "#6a86c6", text: "#3a4a75" },
+      { bg: "rgba(209, 73, 91, 0.15)", border: "#d1495b", text: "#7a2a35" },
+      { bg: "rgba(147, 112, 219, 0.15)", border: "#9370db", text: "#5a4281" },
     ];
 
     return colors[Math.abs(hash) % colors.length];
@@ -97,9 +134,7 @@ function TimetablePage() {
         const res = await fetch(`http://localhost:5000/api/timetable/${timetableId}`, {
           method: "DELETE",
         });
-        if (res.ok) {
-          navigate("/dashboard");
-        }
+        if (res.ok) navigate("/dashboard");
       } catch (err) {
         console.error("Failed to delete", err);
         alert("Error deleting timetable");
@@ -119,7 +154,7 @@ function TimetablePage() {
   if (error) {
     return (
       <div className="timetable-page error-state">
-        <div className="error-icon">⚠️</div>
+        <div className="error-icon">!</div>
         <h2 className="error-title">Unable to Load Timetable</h2>
         <p className="error-message">{error}</p>
         <button className="retry-btn" onClick={() => window.location.reload()}>
@@ -128,6 +163,9 @@ function TimetablePage() {
       </div>
     );
   }
+
+  const summary = timetableData?.summary || {};
+  const unscheduled = timetableData?.unscheduled || [];
 
   return (
     <div className="timetable-page">
@@ -143,6 +181,7 @@ function TimetablePage() {
             <div className="institution-badge">{activeSettings?.institutionName || "AI Timetable"}</div>
             <h1 className="timetable-title">{timetableData?.title || "Class Schedule"}</h1>
             <p className="timetable-subtitle">
+              {timetableData?.department ? `${timetableData.department} • ` : ""}
               Generated for {activeSettings?.semester || "Current Term"} • {activeSettings?.academicYear || "2026"}
             </p>
           </div>
@@ -158,6 +197,29 @@ function TimetablePage() {
             </button>
           </div>
         </div>
+
+        <div className="multi-year-summary">
+          <div className="summary-pill">Groups: {summary.groupCount || groups.length || 0}</div>
+          <div className="summary-pill">Scheduled: {summary.scheduledSessions || timetableData?.entries?.length || 0}</div>
+          <div className="summary-pill">Unscheduled: {summary.unscheduledSessions || 0}</div>
+        </div>
+
+        {groups.length > 1 && (
+          <div className="group-tabs">
+            {groups.map((group) => (
+              <button
+                key={group.key}
+                className={`group-tab ${activeGroup?.key === group.key ? "active" : ""}`}
+                onClick={() => {
+                  setActiveGroupKey(group.key);
+                  setSelectedCell(null);
+                }}
+              >
+                {group.year} - Sec {group.section}
+              </button>
+            ))}
+          </div>
+        )}
 
         <div className="timetable-wrapper">
           <div className="timetable-scroll">
@@ -181,7 +243,7 @@ function TimetablePage() {
                 </tr>
               </thead>
               <tbody>
-                {DAYS.map((day, dayIndex) => (
+                {workingDays.map((day, dayIndex) => (
                   <tr key={day} style={{ animationDelay: `${dayIndex * 0.1}s` }}>
                     <td className="day-cell">
                       <div className="day-name">{day}</div>
@@ -192,15 +254,20 @@ function TimetablePage() {
 
                       return (
                         <td
-                          key={slot}
-                          className={`schedule-cell ${entry ? 'has-class' : 'empty-cell'} ${selectedCell?.day === day && selectedCell?.slot === slot ? 'selected' : ''
-                            }`}
-                          onClick={() => handleCellClick(day, slot, entry)}
-                          style={entry ? {
-                            '--cell-bg': colors.bg,
-                            '--cell-border': colors.border,
-                            '--cell-text': colors.text,
-                          } : {}}
+                          key={`${day}-${slot}`}
+                          className={`schedule-cell ${entry ? "has-class" : "empty-cell"} ${
+                            selectedCell?.day === day && selectedCell?.slot === slot ? "selected" : ""
+                          }`}
+                          onClick={() => entry && setSelectedCell({ day, slot, entry })}
+                          style={
+                            entry
+                              ? {
+                                  "--cell-bg": colors.bg,
+                                  "--cell-border": colors.border,
+                                  "--cell-text": colors.text,
+                                }
+                              : {}
+                          }
                         >
                           {entry ? (
                             <div className="class-info">
@@ -208,7 +275,7 @@ function TimetablePage() {
                               <div className="faculty-name">{entry.faculty}</div>
                             </div>
                           ) : (
-                            <div className="empty-slot">—</div>
+                            <div className="empty-slot">-</div>
                           )}
                         </td>
                       );
@@ -219,6 +286,19 @@ function TimetablePage() {
             </table>
           </div>
         </div>
+
+        {unscheduled.length > 0 && (
+          <div className="unscheduled-panel">
+            <h3>Unscheduled Sessions</h3>
+            <div className="unscheduled-list">
+              {unscheduled.map((item, index) => (
+                <div key={`${item.year}-${item.section}-${item.subject}-${index}`} className="unscheduled-item">
+                  <strong>{item.year} Sec {item.section}</strong> {item.subject} - {item.faculty}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {selectedCell && (
           <div className="detail-panel" onClick={() => setSelectedCell(null)}>
@@ -232,6 +312,14 @@ function TimetablePage() {
                 <h3>{selectedCell.entry.subject}</h3>
               </div>
               <div className="panel-details">
+                <div className="detail-row">
+                  <span className="detail-label">Year</span>
+                  <span className="detail-value">{selectedCell.entry.year || "General"}</span>
+                </div>
+                <div className="detail-row">
+                  <span className="detail-label">Section</span>
+                  <span className="detail-value">{selectedCell.entry.section || "A"}</span>
+                </div>
                 <div className="detail-row">
                   <span className="detail-label">Faculty</span>
                   <span className="detail-value">{selectedCell.entry.faculty}</span>
@@ -252,8 +340,6 @@ function TimetablePage() {
             </div>
           </div>
         )}
-
-
       </div>
     </div>
   );

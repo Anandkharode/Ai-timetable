@@ -40,6 +40,15 @@ def normalize_groups(data):
     }]
 
 
+def normalize_session_type(value):
+    if not value:
+        return "lecture"
+    value = str(value).strip().lower()
+    if value.startswith("prac"):
+        return "practical"
+    return "lecture"
+
+
 def build_sessions(groups):
     sessions = []
     faculty_demand = {}
@@ -53,6 +62,7 @@ def build_sessions(groups):
             subject = (sub.get("subject") or "").strip()
             faculty = (sub.get("faculty") or "").strip()
             required = int(sub.get("lecturesPerWeek", 1) or 1)
+            session_type = normalize_session_type(sub.get("sessionType") or sub.get("type"))
 
             if not subject or not faculty or required < 1:
                 continue
@@ -66,6 +76,7 @@ def build_sessions(groups):
                     "section": section,
                     "subject": subject,
                     "faculty": faculty,
+                    "session_type": session_type,
                     "session_index": lecture_index,
                 })
 
@@ -92,10 +103,12 @@ def generate_timetable(groups, days, slots):
     sessions = build_sessions(groups)
 
     room_list = ROOMS[:]
+    lab_rooms = [room for room in ROOMS if "LAB" in room.upper()]
 
     for session in sessions:
         candidates = []
-        random.shuffle(room_list)
+        candidate_rooms = lab_rooms[:] if session["session_type"] == "practical" and lab_rooms else room_list[:]
+        random.shuffle(candidate_rooms)
 
         for day in days:
             class_subject_key = (
@@ -103,6 +116,7 @@ def generate_timetable(groups, days, slots):
                 session["year"],
                 session["section"],
                 session["subject"],
+                session["session_type"],
             )
             if daily_subject_load.get(class_subject_key, 0) >= 1:
                 continue
@@ -123,7 +137,7 @@ def generate_timetable(groups, days, slots):
                 if class_key in occupied_classes:
                     continue
 
-                for room in room_list:
+                for room in candidate_rooms:
                     room_key = (day, slot, room)
                     if room_key in occupied_room:
                         continue
@@ -136,6 +150,7 @@ def generate_timetable(groups, days, slots):
                 "section": session["section"],
                 "subject": session["subject"],
                 "faculty": session["faculty"],
+                "sessionType": session["session_type"],
                 "reason": "No available slot without faculty/class/room conflict",
             })
             continue
@@ -148,6 +163,7 @@ def generate_timetable(groups, days, slots):
             "section": session["section"],
             "subject": session["subject"],
             "faculty": session["faculty"],
+            "sessionType": session["session_type"],
             "room": room,
             "day": day,
             "slot": slot,
@@ -165,6 +181,7 @@ def generate_timetable(groups, days, slots):
             session["year"],
             session["section"],
             session["subject"],
+            session["session_type"],
         )
         daily_subject_load[class_subject_key] = daily_subject_load.get(class_subject_key, 0) + 1
 

@@ -18,6 +18,12 @@ function TimetablePage() {
   const [timeSlots, setTimeSlots] = useState([]);
   const [activeGroupKey, setActiveGroupKey] = useState("");
 
+  const formatSessionType = (value) => {
+    if (!value) return "Lecture";
+    const normalized = String(value).trim().toLowerCase();
+    return normalized === "practical" ? "Practical" : "Lecture";
+  };
+
   useEffect(() => {
     const fetchTimetable = async () => {
       try {
@@ -66,6 +72,12 @@ function TimetablePage() {
   const workingDays = activeSettings?.workingDays?.length
     ? activeSettings.workingDays
     : ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
+
+  const breakAfterSlot = Number(activeSettings?.breakAfterSlot) || 0;
+  const breakDuration = Number(activeSettings?.breakDuration) || 0;
+  const hasRecess = breakAfterSlot > 0 && breakAfterSlot <= timeSlots.length;
+  const beforeSlots = hasRecess ? timeSlots.slice(0, breakAfterSlot) : timeSlots;
+  const afterSlots = hasRecess ? timeSlots.slice(breakAfterSlot) : [];
 
   const groups = useMemo(() => {
     if (!timetableData?.entries) return [];
@@ -126,6 +138,7 @@ function TimetablePage() {
 
   const handlePrint = () => window.print();
   const handleEdit = () => navigate("/create");
+  const handleBackHome = () => navigate("/");
 
   const handleDelete = async () => {
     if (!timetableId) return;
@@ -186,6 +199,9 @@ function TimetablePage() {
             </p>
           </div>
           <div className="header-actions">
+            <button className="action-btn secondary" onClick={handleBackHome}>
+              Back Home
+            </button>
             <button className="action-btn danger" onClick={handleDelete}>
               Delete
             </button>
@@ -233,8 +249,27 @@ function TimetablePage() {
                       <span className="header-label">Time</span>
                     </div>
                   </th>
-                  {timeSlots.map((slot, index) => (
+                  {beforeSlots.map((slot, index) => (
                     <th key={slot} className="time-header" style={{ animationDelay: `${index * 0.1}s` }}>
+                      <div className="time-badge">
+                        <span className="time-text">{slot}</span>
+                      </div>
+                    </th>
+                  ))}
+                  {hasRecess && (
+                    <th className="recess-header">
+                      <div className="recess-badge">
+                        <span className="recess-title">Recess</span>
+                        {breakDuration > 0 && <span className="recess-time">{breakDuration} min</span>}
+                      </div>
+                    </th>
+                  )}
+                  {afterSlots.map((slot, index) => (
+                    <th
+                      key={slot}
+                      className="time-header"
+                      style={{ animationDelay: `${(index + beforeSlots.length) * 0.1}s` }}
+                    >
                       <div className="time-badge">
                         <span className="time-text">{slot}</span>
                       </div>
@@ -248,7 +283,7 @@ function TimetablePage() {
                     <td className="day-cell">
                       <div className="day-name">{day}</div>
                     </td>
-                    {timeSlots.map((slot) => {
+                    {beforeSlots.map((slot) => {
                       const entry = getCell(day, slot);
                       const colors = entry ? getSubjectColor(entry.subject) : null;
 
@@ -271,7 +306,58 @@ function TimetablePage() {
                         >
                           {entry ? (
                             <div className="class-info">
-                              <div className="subject-name">{entry.subject}</div>
+                              <div className="subject-name">
+                                {entry.subject}
+                                {formatSessionType(entry.sessionType) === "Practical" ? (
+                                  <span className="session-badge practical">Practical</span>
+                                ) : (
+                                  <span className="session-badge">Lecture</span>
+                                )}
+                              </div>
+                              <div className="faculty-name">{entry.faculty}</div>
+                            </div>
+                          ) : (
+                            <div className="empty-slot">-</div>
+                          )}
+                        </td>
+                      );
+                    })}
+                    {hasRecess && (
+                      <td className="recess-cell">
+                        <div className="recess-text">Recess</div>
+                      </td>
+                    )}
+                    {afterSlots.map((slot) => {
+                      const entry = getCell(day, slot);
+                      const colors = entry ? getSubjectColor(entry.subject) : null;
+
+                      return (
+                        <td
+                          key={`${day}-${slot}`}
+                          className={`schedule-cell ${entry ? "has-class" : "empty-cell"} ${
+                            selectedCell?.day === day && selectedCell?.slot === slot ? "selected" : ""
+                          }`}
+                          onClick={() => entry && setSelectedCell({ day, slot, entry })}
+                          style={
+                            entry
+                              ? {
+                                  "--cell-bg": colors.bg,
+                                  "--cell-border": colors.border,
+                                  "--cell-text": colors.text,
+                                }
+                              : {}
+                          }
+                        >
+                          {entry ? (
+                            <div className="class-info">
+                              <div className="subject-name">
+                                {entry.subject}
+                                {formatSessionType(entry.sessionType) === "Practical" ? (
+                                  <span className="session-badge practical">Practical</span>
+                                ) : (
+                                  <span className="session-badge">Lecture</span>
+                                )}
+                              </div>
                               <div className="faculty-name">{entry.faculty}</div>
                             </div>
                           ) : (
@@ -293,7 +379,8 @@ function TimetablePage() {
             <div className="unscheduled-list">
               {unscheduled.map((item, index) => (
                 <div key={`${item.year}-${item.section}-${item.subject}-${index}`} className="unscheduled-item">
-                  <strong>{item.year} Sec {item.section}</strong> {item.subject} - {item.faculty}
+                  <strong>{item.year} Sec {item.section}</strong> {item.subject}{" "}
+                  {item.sessionType ? `(${formatSessionType(item.sessionType)})` : ""} - {item.faculty}
                 </div>
               ))}
             </div>
@@ -312,6 +399,12 @@ function TimetablePage() {
                 <h3>{selectedCell.entry.subject}</h3>
               </div>
               <div className="panel-details">
+                <div className="detail-row">
+                  <span className="detail-label">Session Type</span>
+                  <span className="detail-value">
+                    {formatSessionType(selectedCell.entry.sessionType)}
+                  </span>
+                </div>
                 <div className="detail-row">
                   <span className="detail-label">Year</span>
                   <span className="detail-value">{selectedCell.entry.year || "General"}</span>

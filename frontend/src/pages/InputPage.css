@@ -387,6 +387,10 @@
   grid-column: 1 / -1;
 }
 
+.session-type-field {
+  grid-column: 1 / -1;
+}
+
 .input-field label {
   font-size: 0.875rem;
   font-weight: 600;
@@ -406,11 +410,38 @@
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+.input-field select {
+  padding: 0.875rem 1.125rem;
+  font-size: 1rem;
+  font-family: 'Work Sans', sans-serif;
+  color: var(--text-dark);
+  background: var(--bg-cream);
+  border: 2px solid transparent;
+  border-radius: 12px;
+  outline: none;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  appearance: none;
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--text-light) 50%),
+    linear-gradient(135deg, var(--text-light) 50%, transparent 50%);
+  background-position:
+    calc(100% - 22px) calc(50% - 2px),
+    calc(100% - 16px) calc(50% - 2px);
+  background-size: 6px 6px;
+  background-repeat: no-repeat;
+}
+
 .input-field input::placeholder {
   color: var(--text-light);
 }
 
 .input-field input:focus {
+  background: var(--white);
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 4px rgba(201, 169, 110, 0.1);
+}
+
+.input-field select:focus {
   background: var(--white);
   border-color: var(--accent-color);
   box-shadow: 0 0 0 4px rgba(201, 169, 110, 0.1);

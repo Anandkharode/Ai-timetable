@@ -3,6 +3,7 @@
 :root {
   --primary-color: #2d3561;
   --primary-light: #3d4778;
+  --primary-dark: #1f2442;
   --accent-color: #c9a96e;
   --accent-light: #e0c492;
   --text-dark: #1a1a2e;
@@ -279,6 +280,35 @@
   letter-spacing: 0.02em;
 }
 
+.recess-header {
+  background: var(--primary-dark);
+  color: var(--white);
+  text-align: center;
+  padding: 1.25rem 0.5rem;
+}
+
+.recess-badge {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.5rem 0.9rem;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.recess-title {
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.recess-time {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.7);
+}
+
 /* Table Body */
 .timetable tbody tr {
   animation: slideIn 0.5s ease-out backwards;
@@ -346,6 +376,23 @@
   cursor: default;
 }
 
+.recess-cell {
+  background: rgba(201, 169, 110, 0.12);
+  text-align: center;
+  font-weight: 700;
+  color: var(--text-medium);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  border-left: 2px solid rgba(201, 169, 110, 0.45);
+  border-right: 2px solid rgba(201, 169, 110, 0.45);
+}
+
+.recess-text {
+  transform: rotate(-90deg);
+  display: inline-block;
+  font-size: 0.85rem;
+}
+
 .empty-slot {
   color: var(--text-light);
   font-size: 1.5rem;
@@ -380,12 +427,36 @@
   font-weight: 600;
   color: var(--cell-text);
   line-height: 1.3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
 }
 
 .faculty-name {
   font-size: 0.8125rem;
   color: var(--text-medium);
   font-weight: 500;
+}
+
+.session-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.45rem;
+  border-radius: 999px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  background: rgba(45, 53, 97, 0.12);
+  color: var(--text-medium);
+}
+
+.session-badge.practical {
+  background: rgba(82, 166, 117, 0.18);
+  color: #2d5a42;
+  border: 1px solid rgba(82, 166, 117, 0.35);
 }
 
 /* Detail Panel */

@@ -11,7 +11,12 @@ const YEAR_GROUPS = [
   { year: "4th Year", section: "A" },
 ];
 
-const createEmptySubject = () => ({ subject: "", faculty: "", lecturesPerWeek: 1 });
+const createEmptySubject = () => ({
+  subject: "",
+  faculty: "",
+  lecturesPerWeek: 1,
+  sessionType: "Lecture",
+});
 
 function FacultySelect({ value, onChange, error, id }) {
   const [open, setOpen] = useState(false);
@@ -262,6 +267,7 @@ function InputPage() {
             subject: sub.subject.trim(),
             faculty: sub.faculty.trim(),
             lecturesPerWeek: Number(sub.lecturesPerWeek) || 1,
+            sessionType: sub.sessionType || "Lecture",
           })),
       }));
 
@@ -435,8 +441,22 @@ function InputPage() {
                         )}
                       </div>
 
+                      <div className="input-field session-type-field">
+                        <label htmlFor={`type-${groupIndex}-${subjectIndex}`}>Session Type</label>
+                        <select
+                          id={`type-${groupIndex}-${subjectIndex}`}
+                          value={sub.sessionType || "Lecture"}
+                          onChange={(e) => updateSubject(groupIndex, subjectIndex, "sessionType", e.target.value)}
+                        >
+                          <option value="Lecture">Lecture</option>
+                          <option value="Practical">Practical</option>
+                        </select>
+                      </div>
+
                       <div className="input-field lectures-field">
-                        <label htmlFor={`lectures-${groupIndex}-${subjectIndex}`}>Lectures per Week</label>
+                        <label htmlFor={`lectures-${groupIndex}-${subjectIndex}`}>
+                          {sub.sessionType === "Practical" ? "Practicals per Week" : "Lectures per Week"}
+                        </label>
                         <div className="number-input-wrapper">
                           <button
                             className="number-btn"

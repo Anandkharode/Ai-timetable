@@ -6,6 +6,7 @@ const timetableSchema = new mongoose.Schema({
   section: String,
   subject: String,
   faculty: String,
+  sessionType: String,
   room: String,
   day: String,
   slot: String,

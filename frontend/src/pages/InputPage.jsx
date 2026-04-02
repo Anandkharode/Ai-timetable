@@ -1,11 +1,12 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { getFaculty } from "../utils/facultyStore";
+import { getFaculty, getFacultyDisplayName } from "../utils/facultyStore";
 import { getSettings } from "../utils/settingsStore";
 import { generateTimeSlots } from "../utils/timetableUtils";
 import "./InputPage.css";
 
 const YEAR_GROUPS = [
+  { year: "1st Year", section: "A" },
   { year: "2nd Year", section: "A" },
   { year: "3rd Year", section: "A" },
   { year: "4th Year", section: "A" },
@@ -19,124 +20,66 @@ const createEmptySubject = () => ({
 });
 
 function FacultySelect({ value, onChange, error, id }) {
-  const [open, setOpen] = useState(false);
-  const [search, setSearch] = useState("");
   const [facultyList, setFacultyList] = useState([]);
-  const wrapperRef = useRef(null);
 
   useEffect(() => {
-    setFacultyList(getFaculty());
-  }, []);
+    const loadFaculty = () => {
+      setFacultyList(getFaculty());
+    };
 
-  useEffect(() => {
-    function handleClick(e) {
-      if (wrapperRef.current && !wrapperRef.current.contains(e.target)) {
-        setOpen(false);
-      }
-    }
+    loadFaculty();
 
-    document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
+    window.addEventListener("focus", loadFaculty);
+    window.addEventListener("storage", loadFaculty);
+
+    return () => {
+      window.removeEventListener("focus", loadFaculty);
+      window.removeEventListener("storage", loadFaculty);
+    };
   }, []);
 
   const filtered = facultyList.filter((f) =>
-    f.name.toLowerCase().includes(search.toLowerCase()) ||
-    f.department.toLowerCase().includes(search.toLowerCase())
+    Boolean(getFacultyDisplayName(f))
   );
 
   const hasStoredFaculty = facultyList.length > 0;
+  const matchesSavedFaculty = facultyList.some((f) => getFacultyDisplayName(f) === value);
 
   return (
-    <div className="faculty-select-wrapper" ref={wrapperRef}>
+    <div className="faculty-select-wrapper">
       {hasStoredFaculty ? (
         <>
-          <div
-            className={`faculty-select-trigger ${error ? "error" : ""} ${open ? "focused" : ""}`}
-            onClick={() => setOpen(!open)}
+          <select
             id={id}
-            role="combobox"
-            aria-expanded={open}
-            tabIndex={0}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") setOpen(!open);
-              if (e.key === "Escape") setOpen(false);
+            className={error ? "error" : ""}
+            value={matchesSavedFaculty ? value : "__manual__"}
+            onChange={(e) => {
+              if (e.target.value === "__manual__") {
+                if (matchesSavedFaculty) {
+                  onChange("");
+                }
+                return;
+              }
+              onChange(e.target.value);
             }}
           >
-            {value ? (
-              <span className="faculty-select-value">
-                <span className="select-avatar">
-                  {value.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2)}
-                </span>
-                {value}
-                <button
-                  className="select-clear"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onChange("");
-                    setSearch("");
-                  }}
-                  aria-label="Clear selection"
-                >
-                  x
-                </button>
-              </span>
-            ) : (
-              <span className="faculty-select-placeholder">Select faculty member...</span>
-            )}
-            <span className={`select-chevron ${open ? "open" : ""}`}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="6 9 12 15 18 9" />
-              </svg>
-            </span>
-          </div>
-
-          {open && (
-            <div className="faculty-dropdown">
-              <div className="dropdown-search-wrap">
-                <input
-                  className="dropdown-search"
-                  type="text"
-                  placeholder="Search faculty..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  autoFocus
-                />
-              </div>
-              <div className="dropdown-list">
-                {filtered.length === 0 ? (
-                  <div className="dropdown-empty">No matching faculty found</div>
-                ) : (
-                  filtered.map((f) => (
-                    <div
-                      key={f.id}
-                      className={`dropdown-item ${value === f.name ? "selected" : ""}`}
-                      onClick={() => {
-                        onChange(f.name);
-                        setSearch("");
-                        setOpen(false);
-                      }}
-                    >
-                      <span className="dropdown-avatar">
-                        {f.name.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2)}
-                      </span>
-                      <span className="dropdown-item-info">
-                        <span className="dropdown-item-name">{f.name}</span>
-                        <span className="dropdown-item-dept">{f.department}</span>
-                      </span>
-                      {value === f.name && <span className="dropdown-check">OK</span>}
-                    </div>
-                  ))
-                )}
-              </div>
-              <div className="dropdown-footer">Or type a name manually below</div>
-            </div>
-          )}
+            <option value="">Select saved faculty...</option>
+            {filtered.map((f) => {
+              const displayName = getFacultyDisplayName(f);
+              return (
+                <option key={f.id} value={displayName}>
+                  {displayName} ({f.department})
+                </option>
+              );
+            })}
+            <option value="__manual__">Enter manually</option>
+          </select>
 
           <input
             type="text"
             className="faculty-manual-input"
-            placeholder="Or type name manually..."
-            value={value && !facultyList.find((f) => f.name === value) ? value : ""}
+            placeholder="Or type faculty name manually..."
+            value={matchesSavedFaculty ? "" : value}
             onChange={(e) => onChange(e.target.value)}
             style={{ marginTop: "0.5rem" }}
           />
@@ -335,7 +278,7 @@ function InputPage() {
           <div className="header-content">
             <h1 className="input-title">Build Multi-Year Schedule</h1>
             <p className="input-subtitle">
-              Create 2nd, 3rd, and 4th year timetables together so shared faculty never clash
+              Create 1st, 2nd, 3rd, and 4th year timetables together so shared faculty never clash
             </p>
             <div className="header-meta-fields">
               <div className="meta-field">
@@ -369,7 +312,7 @@ function InputPage() {
           </div>
           <div className="subject-count">
             <span className="count-number">{totalSubjects}</span>
-            <span className="count-label">Rows Across 3 Years</span>
+            <span className="count-label">Rows Across 4 Years</span>
           </div>
         </div>
 

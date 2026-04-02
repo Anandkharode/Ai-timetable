@@ -5,10 +5,27 @@
 
 const STORAGE_KEY = "ai_timetable_faculty";
 
+function normalizeFacultyRecord(faculty) {
+    const title = (faculty?.title || "").trim();
+    const name = (faculty?.name || "").trim();
+
+    return {
+        ...faculty,
+        title,
+        name,
+    };
+}
+
+export function getFacultyDisplayName(faculty) {
+    const normalized = normalizeFacultyRecord(faculty);
+    return [normalized.title, normalized.name].filter(Boolean).join(" ");
+}
+
 export function getFaculty() {
     try {
         const raw = localStorage.getItem(STORAGE_KEY);
-        return raw ? JSON.parse(raw) : [];
+        const parsed = raw ? JSON.parse(raw) : [];
+        return Array.isArray(parsed) ? parsed.map(normalizeFacultyRecord) : [];
     } catch {
         return [];
     }
@@ -21,7 +38,7 @@ export function saveFaculty(list) {
 export function addFaculty(faculty) {
     const list = getFaculty();
     const newFaculty = {
-        ...faculty,
+        ...normalizeFacultyRecord(faculty),
         id: Date.now().toString(36) + Math.random().toString(36).slice(2, 7),
         createdAt: new Date().toISOString(),
     };

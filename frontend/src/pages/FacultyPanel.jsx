@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import {
     getFaculty,
     addFaculty,
+    getFacultyDisplayName,
     removeFaculty,
 } from "../utils/facultyStore";
 import "./FacultyPanel.css";
@@ -43,6 +44,8 @@ const CheckIcon = () => (
     </svg>
 );
 
+const FACULTY_TITLES = ["", "Prof.", "Dr.", "Mr.", "Ms.", "Mrs."];
+
 /* ───── Helper ───── */
 function getInitials(name) {
     return name
@@ -64,6 +67,7 @@ export default function FacultyPanel() {
 
     // Form state
     const [form, setForm] = useState({
+        title: "",
         name: "",
         department: "",
         shortCode: "",
@@ -112,15 +116,16 @@ export default function FacultyPanel() {
                 .toUpperCase();
 
         const newFaculty = addFaculty({
+            title: form.title,
             name: form.name.trim(),
             department: form.department.trim(),
             shortCode,
         });
 
         setFacultyList(getFaculty());
-        setForm({ name: "", department: "", shortCode: "" });
+        setForm({ title: "", name: "", department: "", shortCode: "" });
         setFormErrors({});
-        setShowSuccess(`${newFaculty.name} added successfully!`);
+        setShowSuccess(`${getFacultyDisplayName(newFaculty)} added successfully!`);
     };
 
     const handleDelete = (id, name) => {
@@ -138,7 +143,7 @@ export default function FacultyPanel() {
     const filtered = facultyList.filter((f) => {
         const q = search.toLowerCase();
         return (
-            f.name.toLowerCase().includes(q) ||
+            getFacultyDisplayName(f).toLowerCase().includes(q) ||
             f.department.toLowerCase().includes(q) ||
             (f.shortCode && f.shortCode.toLowerCase().includes(q))
         );
@@ -173,14 +178,35 @@ export default function FacultyPanel() {
                 </div>
                 <div className="faculty-form">
                     <div className="form-field">
+                        <label className="form-label" htmlFor="faculty-title-input">
+                            Title
+                        </label>
+                        <select
+                            id="faculty-title-input"
+                            className="form-input"
+                            value={form.title}
+                            onChange={(e) => handleFormChange("title", e.target.value)}
+                            onKeyDown={handleKeyDown}
+                        >
+                            <option value="">None</option>
+                            {FACULTY_TITLES.filter(Boolean).map((title) => (
+                                <option key={title} value={title}>
+                                    {title}
+                                </option>
+                            ))}
+                        </select>
+                        <span className="form-error"></span>
+                    </div>
+
+                    <div className="form-field">
                         <label className="form-label" htmlFor="faculty-name-input">
-                            Full Name *
+                            Name *
                         </label>
                         <input
                             id="faculty-name-input"
                             className={`form-input ${formErrors.name ? "has-error" : ""}`}
                             type="text"
-                            placeholder="e.g., Dr. Sarah Johnson"
+                            placeholder="e.g., Sarah Johnson"
                             value={form.name}
                             onChange={(e) => handleFormChange("name", e.target.value)}
                             onKeyDown={handleKeyDown}
@@ -280,16 +306,16 @@ export default function FacultyPanel() {
                         {filtered.map((f) => (
                             <div className="faculty-row" key={f.id} id={`faculty-${f.id}`}>
                                 <div className="faculty-name-cell">
-                                    <span className="faculty-avatar">{getInitials(f.name)}</span>
-                                    <span className="faculty-name">{f.name}</span>
+                                    <span className="faculty-avatar">{getInitials(getFacultyDisplayName(f))}</span>
+                                    <span className="faculty-name">{getFacultyDisplayName(f)}</span>
                                 </div>
                                 <span className="faculty-dept">{f.department}</span>
                                 <span className="faculty-short">{f.shortCode}</span>
                                 <div className="faculty-actions">
                                     <button
                                         className="delete-faculty-btn"
-                                        aria-label={`Delete ${f.name}`}
-                                        onClick={() => handleDelete(f.id, f.name)}
+                                        aria-label={`Delete ${getFacultyDisplayName(f)}`}
+                                        onClick={() => handleDelete(f.id, getFacultyDisplayName(f))}
                                     >
                                         <TrashIcon />
                                         Delete

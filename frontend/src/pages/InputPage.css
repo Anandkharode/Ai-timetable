@@ -990,3 +990,113 @@
 .group-error {
   margin-bottom: 1rem;
 }
+
+.faculty-load-panel {
+  margin-bottom: 2rem;
+  padding: 1.5rem;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid rgba(15, 30, 61, 0.08);
+  box-shadow: var(--shadow-md);
+}
+
+.faculty-load-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.faculty-load-title {
+  margin: 0;
+  font-size: 1.45rem;
+  color: var(--text-dark);
+}
+
+.faculty-load-subtitle {
+  margin: 0.35rem 0 0;
+  color: var(--text-light);
+}
+
+.faculty-load-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+}
+
+.faculty-load-card {
+  padding: 1rem 1.1rem;
+  border-radius: 18px;
+  background: linear-gradient(180deg, rgba(250, 248, 243, 0.95), rgba(255, 255, 255, 0.95));
+  border: 1px solid rgba(15, 30, 61, 0.08);
+}
+
+.faculty-load-name {
+  font-weight: 700;
+  color: var(--text-dark);
+  margin-bottom: 0.75rem;
+}
+
+.faculty-load-metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.65rem;
+}
+
+.faculty-load-metrics span {
+  padding: 0.35rem 0.6rem;
+  border-radius: 999px;
+  background: rgba(45, 53, 97, 0.06);
+  color: var(--text-medium);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.faculty-load-subjects {
+  font-size: 0.85rem;
+  color: var(--text-light);
+  line-height: 1.45;
+}
+
+.card-header-main {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  flex-wrap: wrap;
+}
+
+.batch-preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.batch-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.35rem 0.7rem;
+  border-radius: 999px;
+  background: rgba(82, 166, 117, 0.14);
+  color: #2d5a42;
+  border: 1px solid rgba(82, 166, 117, 0.24);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.practical-batches-field {
+  grid-column: 1 / -1;
+}
+
+.input-hint {
+  font-size: 0.8rem;
+  color: var(--text-light);
+}
+
+@media (max-width: 768px) {
+  .faculty-load-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

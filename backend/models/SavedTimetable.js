@@ -15,6 +15,12 @@ const savedTimetableSchema = new mongoose.Schema({
         scheduledSessions: Number,
         unscheduledSessions: Number,
         groupCount: Number,
+        facultyLoad: [{
+            faculty: String,
+            lectures: Number,
+            practicals: Number,
+            total: Number,
+        }],
     },
     unscheduled: [{
         department: String,
@@ -23,6 +29,7 @@ const savedTimetableSchema = new mongoose.Schema({
         subject: String,
         faculty: String,
         sessionType: String,
+        batches: [String],
         reason: String,
     }],
     createdAt: { type: Date, default: Date.now },
@@ -33,6 +40,7 @@ const savedTimetableSchema = new mongoose.Schema({
         subject: String,
         faculty: String,
         sessionType: String,
+        batches: [String],
         room: String,
         day: String,
         slot: String,

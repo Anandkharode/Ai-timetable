@@ -63,6 +63,11 @@ def build_sessions(groups):
             faculty = (sub.get("faculty") or "").strip()
             required = int(sub.get("lecturesPerWeek", 1) or 1)
             session_type = normalize_session_type(sub.get("sessionType") or sub.get("type"))
+            batches = [
+                str(batch).strip()
+                for batch in (sub.get("batches") or [])
+                if str(batch).strip()
+            ]
 
             if not subject or not faculty or required < 1:
                 continue
@@ -77,6 +82,7 @@ def build_sessions(groups):
                     "subject": subject,
                     "faculty": faculty,
                     "session_type": session_type,
+                    "batches": batches,
                     "session_index": lecture_index,
                 })
 
@@ -101,6 +107,7 @@ def generate_timetable(groups, days, slots):
     daily_faculty_load = {}
     daily_subject_load = {}
     sessions = build_sessions(groups)
+    faculty_load = {}
 
     room_list = ROOMS[:]
     lab_rooms = [room for room in ROOMS if "LAB" in room.upper()]
@@ -151,6 +158,7 @@ def generate_timetable(groups, days, slots):
                 "subject": session["subject"],
                 "faculty": session["faculty"],
                 "sessionType": session["session_type"],
+                "batches": session["batches"],
                 "reason": "No available slot without faculty/class/room conflict",
             })
             continue
@@ -164,6 +172,7 @@ def generate_timetable(groups, days, slots):
             "subject": session["subject"],
             "faculty": session["faculty"],
             "sessionType": session["session_type"],
+            "batches": session["batches"],
             "room": room,
             "day": day,
             "slot": slot,
@@ -175,6 +184,12 @@ def generate_timetable(groups, days, slots):
 
         faculty_day_key = (day, session["faculty"])
         daily_faculty_load[faculty_day_key] = daily_faculty_load.get(faculty_day_key, 0) + 1
+        faculty_load.setdefault(session["faculty"], {"lectures": 0, "practicals": 0, "total": 0})
+        if session["session_type"] == "practical":
+            faculty_load[session["faculty"]]["practicals"] += 1
+        else:
+            faculty_load[session["faculty"]]["lectures"] += 1
+        faculty_load[session["faculty"]]["total"] += 1
 
         class_subject_key = (
             day,
@@ -193,6 +208,18 @@ def generate_timetable(groups, days, slots):
             "scheduledSessions": len(timetable),
             "unscheduledSessions": len(unscheduled),
             "groupCount": len(groups),
+            "facultyLoad": [
+                {
+                    "faculty": faculty,
+                    "lectures": load["lectures"],
+                    "practicals": load["practicals"],
+                    "total": load["total"],
+                }
+                for faculty, load in sorted(
+                    faculty_load.items(),
+                    key=lambda item: (-item[1]["total"], item[0])
+                )
+            ],
         },
     }
 

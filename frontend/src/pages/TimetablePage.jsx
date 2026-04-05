@@ -4,6 +4,49 @@ import { getSettings } from "../utils/settingsStore";
 import { generateTimeSlots } from "../utils/timetableUtils";
 import "./TimetablePage.css";
 
+function formatSessionType(value) {
+  if (!value) return "Lecture";
+  const normalized = String(value).trim().toLowerCase();
+  return normalized === "practical" ? "Practical" : "Lecture";
+}
+
+function normalizeBatches(batches) {
+  return Array.isArray(batches)
+    ? batches.map((batch) => String(batch || "").trim()).filter(Boolean)
+    : [];
+}
+
+function buildFacultyLoad(entries = [], summaryLoad = []) {
+  if (Array.isArray(summaryLoad) && summaryLoad.length > 0) {
+    return summaryLoad;
+  }
+
+  const facultyMap = new Map();
+  entries.forEach((entry) => {
+    const faculty = String(entry.faculty || "").trim();
+    if (!faculty) return;
+
+    const existing = facultyMap.get(faculty) || {
+      faculty,
+      lectures: 0,
+      practicals: 0,
+      total: 0,
+    };
+
+    if (formatSessionType(entry.sessionType) === "Practical") {
+      existing.practicals += 1;
+    } else {
+      existing.lectures += 1;
+    }
+    existing.total += 1;
+    facultyMap.set(faculty, existing);
+  });
+
+  return Array.from(facultyMap.values()).sort(
+    (a, b) => b.total - a.total || a.faculty.localeCompare(b.faculty)
+  );
+}
+
 function TimetablePage() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -17,12 +60,6 @@ function TimetablePage() {
   const [activeSettings, setActiveSettings] = useState(getSettings());
   const [timeSlots, setTimeSlots] = useState([]);
   const [activeGroupKey, setActiveGroupKey] = useState("");
-
-  const formatSessionType = (value) => {
-    if (!value) return "Lecture";
-    const normalized = String(value).trim().toLowerCase();
-    return normalized === "practical" ? "Practical" : "Lecture";
-  };
 
   useEffect(() => {
     const fetchTimetable = async () => {
@@ -49,6 +86,7 @@ function TimetablePage() {
               scheduledSessions: data.length,
               unscheduledSessions: 0,
               groupCount: 1,
+              facultyLoad: buildFacultyLoad(data),
             },
           });
           setActiveSettings(settings);
@@ -107,16 +145,19 @@ function TimetablePage() {
 
   const activeGroup = groups.find((group) => group.key === activeGroupKey) || groups[0] || null;
 
-  const getCell = (day, slot) => {
-    if (!timetableData || !activeGroup) return null;
-    return (
-      timetableData.entries.find(
-        (entry) =>
-          entry.day === day &&
-          entry.slot === slot &&
-          (entry.year || "General") === activeGroup.year &&
-          (entry.section || "A") === activeGroup.section
-      ) || null
+  const facultyLoad = useMemo(
+    () => buildFacultyLoad(timetableData?.entries, timetableData?.summary?.facultyLoad),
+    [timetableData]
+  );
+
+  const getCellEntries = (day, slot) => {
+    if (!timetableData || !activeGroup) return [];
+    return timetableData.entries.filter(
+      (entry) =>
+        entry.day === day &&
+        entry.slot === slot &&
+        (entry.year || "General") === activeGroup.year &&
+        (entry.section || "A") === activeGroup.section
     );
   };
 
@@ -130,7 +171,7 @@ function TimetablePage() {
       { bg: "rgba(82, 166, 117, 0.15)", border: "#52a675", text: "#2d5a42" },
       { bg: "rgba(106, 134, 198, 0.15)", border: "#6a86c6", text: "#3a4a75" },
       { bg: "rgba(209, 73, 91, 0.15)", border: "#d1495b", text: "#7a2a35" },
-      { bg: "rgba(147, 112, 219, 0.15)", border: "#9370db", text: "#5a4281" },
+      { bg: "rgba(241, 146, 61, 0.15)", border: "#f1923d", text: "#8a5319" },
     ];
 
     return colors[Math.abs(hash) % colors.length];
@@ -194,8 +235,8 @@ function TimetablePage() {
             <div className="institution-badge">{activeSettings?.institutionName || "AI Timetable"}</div>
             <h1 className="timetable-title">{timetableData?.title || "Class Schedule"}</h1>
             <p className="timetable-subtitle">
-              {timetableData?.department ? `${timetableData.department} • ` : ""}
-              Generated for {activeSettings?.semester || "Current Term"} • {activeSettings?.academicYear || "2026"}
+              {timetableData?.department ? `${timetableData.department} - ` : ""}
+              Generated for {activeSettings?.semester || "Current Term"} - {activeSettings?.academicYear || "2026"}
             </p>
           </div>
           <div className="header-actions">
@@ -219,6 +260,27 @@ function TimetablePage() {
           <div className="summary-pill">Scheduled: {summary.scheduledSessions || timetableData?.entries?.length || 0}</div>
           <div className="summary-pill">Unscheduled: {summary.unscheduledSessions || 0}</div>
         </div>
+
+        {facultyLoad.length > 0 && (
+          <section className="faculty-load-board">
+            <div className="faculty-load-board-header">
+              <h3>Faculty Lecture Count</h3>
+              <span>{facultyLoad.length} faculty</span>
+            </div>
+            <div className="faculty-load-board-grid">
+              {facultyLoad.map((item) => (
+                <article key={item.faculty} className="faculty-load-board-card">
+                  <div className="faculty-load-board-name">{item.faculty}</div>
+                  <div className="faculty-load-board-stats">
+                    <span>Total {item.total}</span>
+                    <span>Lecture {item.lectures}</span>
+                    <span>Practical {item.practicals}</span>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </section>
+        )}
 
         {groups.length > 1 && (
           <div className="group-tabs">
@@ -284,18 +346,19 @@ function TimetablePage() {
                       <div className="day-name">{day}</div>
                     </td>
                     {beforeSlots.map((slot) => {
-                      const entry = getCell(day, slot);
-                      const colors = entry ? getSubjectColor(entry.subject) : null;
+                      const entries = getCellEntries(day, slot);
+                      const firstEntry = entries[0];
+                      const colors = firstEntry ? getSubjectColor(firstEntry.subject) : null;
 
                       return (
                         <td
                           key={`${day}-${slot}`}
-                          className={`schedule-cell ${entry ? "has-class" : "empty-cell"} ${
+                          className={`schedule-cell ${entries.length ? "has-class" : "empty-cell"} ${
                             selectedCell?.day === day && selectedCell?.slot === slot ? "selected" : ""
                           }`}
-                          onClick={() => entry && setSelectedCell({ day, slot, entry })}
+                          onClick={() => entries.length && setSelectedCell({ day, slot, entries })}
                           style={
-                            entry
+                            firstEntry
                               ? {
                                   "--cell-bg": colors.bg,
                                   "--cell-border": colors.border,
@@ -304,17 +367,33 @@ function TimetablePage() {
                               : {}
                           }
                         >
-                          {entry ? (
-                            <div className="class-info">
-                              <div className="subject-name">
-                                {entry.subject}
-                                {formatSessionType(entry.sessionType) === "Practical" ? (
-                                  <span className="session-badge practical">Practical</span>
-                                ) : (
-                                  <span className="session-badge">Lecture</span>
-                                )}
-                              </div>
-                              <div className="faculty-name">{entry.faculty}</div>
+                          {entries.length ? (
+                            <div className="class-stack">
+                              {entries.map((entry, index) => (
+                                <div key={`${entry.subject}-${entry.faculty}-${index}`} className="class-info">
+                                  <div className="subject-name">
+                                    {entry.subject}
+                                    <span
+                                      className={`session-badge ${
+                                        formatSessionType(entry.sessionType) === "Practical" ? "practical" : ""
+                                      }`}
+                                    >
+                                      {formatSessionType(entry.sessionType)}
+                                    </span>
+                                  </div>
+                                  {normalizeBatches(entry.batches).length > 0 && (
+                                    <div className="batch-boxes">
+                                      {normalizeBatches(entry.batches).map((batch) => (
+                                        <span key={`${entry.subject}-${batch}`} className="batch-box">
+                                          {batch}
+                                        </span>
+                                      ))}
+                                    </div>
+                                  )}
+                                  <div className="faculty-name">{entry.faculty}</div>
+                                  {entry.room && <div className="room-name">{entry.room}</div>}
+                                </div>
+                              ))}
                             </div>
                           ) : (
                             <div className="empty-slot">-</div>
@@ -328,18 +407,19 @@ function TimetablePage() {
                       </td>
                     )}
                     {afterSlots.map((slot) => {
-                      const entry = getCell(day, slot);
-                      const colors = entry ? getSubjectColor(entry.subject) : null;
+                      const entries = getCellEntries(day, slot);
+                      const firstEntry = entries[0];
+                      const colors = firstEntry ? getSubjectColor(firstEntry.subject) : null;
 
                       return (
                         <td
                           key={`${day}-${slot}`}
-                          className={`schedule-cell ${entry ? "has-class" : "empty-cell"} ${
+                          className={`schedule-cell ${entries.length ? "has-class" : "empty-cell"} ${
                             selectedCell?.day === day && selectedCell?.slot === slot ? "selected" : ""
                           }`}
-                          onClick={() => entry && setSelectedCell({ day, slot, entry })}
+                          onClick={() => entries.length && setSelectedCell({ day, slot, entries })}
                           style={
-                            entry
+                            firstEntry
                               ? {
                                   "--cell-bg": colors.bg,
                                   "--cell-border": colors.border,
@@ -348,17 +428,33 @@ function TimetablePage() {
                               : {}
                           }
                         >
-                          {entry ? (
-                            <div className="class-info">
-                              <div className="subject-name">
-                                {entry.subject}
-                                {formatSessionType(entry.sessionType) === "Practical" ? (
-                                  <span className="session-badge practical">Practical</span>
-                                ) : (
-                                  <span className="session-badge">Lecture</span>
-                                )}
-                              </div>
-                              <div className="faculty-name">{entry.faculty}</div>
+                          {entries.length ? (
+                            <div className="class-stack">
+                              {entries.map((entry, index) => (
+                                <div key={`${entry.subject}-${entry.faculty}-${index}`} className="class-info">
+                                  <div className="subject-name">
+                                    {entry.subject}
+                                    <span
+                                      className={`session-badge ${
+                                        formatSessionType(entry.sessionType) === "Practical" ? "practical" : ""
+                                      }`}
+                                    >
+                                      {formatSessionType(entry.sessionType)}
+                                    </span>
+                                  </div>
+                                  {normalizeBatches(entry.batches).length > 0 && (
+                                    <div className="batch-boxes">
+                                      {normalizeBatches(entry.batches).map((batch) => (
+                                        <span key={`${entry.subject}-${batch}`} className="batch-box">
+                                          {batch}
+                                        </span>
+                                      ))}
+                                    </div>
+                                  )}
+                                  <div className="faculty-name">{entry.faculty}</div>
+                                  {entry.room && <div className="room-name">{entry.room}</div>}
+                                </div>
+                              ))}
                             </div>
                           ) : (
                             <div className="empty-slot">-</div>
@@ -381,6 +477,9 @@ function TimetablePage() {
                 <div key={`${item.year}-${item.section}-${item.subject}-${index}`} className="unscheduled-item">
                   <strong>{item.year} Sec {item.section}</strong> {item.subject}{" "}
                   {item.sessionType ? `(${formatSessionType(item.sessionType)})` : ""} - {item.faculty}
+                  {normalizeBatches(item.batches).length > 0
+                    ? ` [${normalizeBatches(item.batches).join(", ")}]`
+                    : ""}
                 </div>
               ))}
             </div>
@@ -389,46 +488,53 @@ function TimetablePage() {
 
         {selectedCell && (
           <div className="detail-panel" onClick={() => setSelectedCell(null)}>
-            <div className="panel-content" onClick={(e) => e.stopPropagation()}>
+            <div className="panel-content" onClick={(event) => event.stopPropagation()}>
               <button className="close-panel" onClick={() => setSelectedCell(null)}>
                 <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
                   <path d="M15 5L5 15M5 5L15 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
                 </svg>
               </button>
               <div className="panel-header">
-                <h3>{selectedCell.entry.subject}</h3>
+                <h3>
+                  {selectedCell.day} - {selectedCell.slot}
+                </h3>
               </div>
-              <div className="panel-details">
-                <div className="detail-row">
-                  <span className="detail-label">Session Type</span>
-                  <span className="detail-value">
-                    {formatSessionType(selectedCell.entry.sessionType)}
-                  </span>
-                </div>
-                <div className="detail-row">
-                  <span className="detail-label">Year</span>
-                  <span className="detail-value">{selectedCell.entry.year || "General"}</span>
-                </div>
-                <div className="detail-row">
-                  <span className="detail-label">Section</span>
-                  <span className="detail-value">{selectedCell.entry.section || "A"}</span>
-                </div>
-                <div className="detail-row">
-                  <span className="detail-label">Faculty</span>
-                  <span className="detail-value">{selectedCell.entry.faculty}</span>
-                </div>
-                <div className="detail-row">
-                  <span className="detail-label">Day</span>
-                  <span className="detail-value">{selectedCell.day}</span>
-                </div>
-                <div className="detail-row">
-                  <span className="detail-label">Time</span>
-                  <span className="detail-value">{selectedCell.slot}</span>
-                </div>
-                <div className="detail-row">
-                  <span className="detail-label">Room</span>
-                  <span className="detail-value">{selectedCell.entry.room || "TBD"}</span>
-                </div>
+              <div className="session-detail-list">
+                {selectedCell.entries.map((entry, index) => (
+                  <div key={`${entry.subject}-${entry.faculty}-${index}`} className="session-detail-card">
+                    <div className="session-detail-title">{entry.subject}</div>
+                    <div className="panel-details">
+                      <div className="detail-row">
+                        <span className="detail-label">Session Type</span>
+                        <span className="detail-value">{formatSessionType(entry.sessionType)}</span>
+                      </div>
+                      <div className="detail-row">
+                        <span className="detail-label">Year</span>
+                        <span className="detail-value">{entry.year || "General"}</span>
+                      </div>
+                      <div className="detail-row">
+                        <span className="detail-label">Section</span>
+                        <span className="detail-value">{entry.section || "A"}</span>
+                      </div>
+                      <div className="detail-row">
+                        <span className="detail-label">Faculty</span>
+                        <span className="detail-value">{entry.faculty}</span>
+                      </div>
+                      <div className="detail-row">
+                        <span className="detail-label">Room</span>
+                        <span className="detail-value">{entry.room || "TBD"}</span>
+                      </div>
+                      <div className="detail-row">
+                        <span className="detail-label">Batches</span>
+                        <span className="detail-value">
+                          {normalizeBatches(entry.batches).length > 0
+                            ? normalizeBatches(entry.batches).join(", ")
+                            : "Not set"}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
